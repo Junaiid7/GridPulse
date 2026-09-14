@@ -1,0 +1,68 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.eggs/
+*.egg
+*.egg-info/
+build/
+dist/
+
+# ---- Virtual environments ----
+.venv/
+venv/
+env/
+ENV/
+
+# ---- Tooling caches ----
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.pytype/
+.hypothesis/
+.tox/
+.nox/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+dmypy.json
+
+# ---- Environment & secrets (never commit) ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ---- Logs ----
+logs/
+*.log
+
+# ---- IDE / editor / OS ----
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ---- Notebooks ----
+.ipynb_checkpoints/
+
+# ---- Project data: never commit datasets -----------------------------
+# Data lives in data/{bronze,silver,gold}. Ignore everything under each
+# tier but keep the directories themselves via .gitkeep.
+/data/bronze/*
+/data/silver/*
+/data/gold/*
+!/data/bronze/.gitkeep
+!/data/silver/.gitkeep
+!/data/gold/.gitkeep

@@ -1,0 +1,26 @@
+<!-- Synthetic sample mirroring the ENTSO-E REST API response for
+     Day-ahead prices (documentType A44). Hand-crafted, not downloaded. -->
+<GL_MarketDocument xmlns="urn:iec62325.351:tc57wg16:451-1:glmarketdocument:7:0">
+  <mRID>synthetic-fixture-0002</mRID>
+  <type>A44</type>
+  <TimeSeries>
+    <mRID>ts-0001</mRID>
+    <businessType>A44</businessType>
+    <curveType>A01</curveType>
+    <in_Domain.mRID codingScheme="A01">10YNL----------L</in_Domain.mRID>
+    <out_Domain.mRID codingScheme="A01">10YNL----------L</out_Domain.mRID>
+    <currency>EUR</currency>
+    <price_measure_unit.name>MWH</price_measure_unit.name>
+    <Period>
+      <timeInterval>
+        <start>2024-01-01T00:00Z</start>
+        <end>2024-01-01T04:00Z</end>
+      </timeInterval>
+      <resolution>PT60M</resolution>
+      <Point><position>1</position><price.amount>45.20</price.amount></Point>
+      <Point><position>2</position><price.amount>48.70</price.amount></Point>
+      <Point><position>3</position><price.amount>55.05</price.amount></Point>
+      <Point><position>4</position><price.amount>39.80</price.amount></Point>
+    </Period>
+  </TimeSeries>
+</GL_MarketDocument>

@@ -1,0 +1,4 @@
+# Centralised configuration profiles for GridPulse.
+# Phase 1: configuration lives in src/gridpulse/config.py with environment
+# overrides (see .env.example). Environment/deployment profiles will be added
+# here as deployment is introduced.

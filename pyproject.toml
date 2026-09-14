@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gridpulse"
+version = "2.0.0"
+description = "Uncertainty-aware residual-load forecasting and storage dispatch optimisation for the Dutch electricity market."
+readme = "README.md"
+requires-python = ">=3.12"
+keywords = ["energy", "forecasting", "uncertainty", "optimisation", "storage", "netherlands"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+]
+# No runtime dependencies in Phase 1: the package is a pure-namespace scaffold.
+dependencies = []
+
+[project.optional-dependencies]
+# Minimum set required to run the test suite. Broader stack (Prefect, DuckDB,
+# LightGBM, etc.) is intentionally deferred to later phases.
+dev = ["pytest>=8.0"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gridpulse"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+# Let pytest import the src-layout package without a prior install.
+pythonpath = ["src"]
