@@ -19,8 +19,8 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering",
 ]
-# No runtime dependencies in Phase 1: the package is a pure-namespace scaffold.
-dependencies = []
+# Phase 3 requires tzdata for zoneinfo.ZoneInfo on Windows (no system tz db).
+dependencies = ["tzdata>=2024.1"]
 
 [project.optional-dependencies]
 # Minimum set required to run the test suite. Broader stack (Prefect, DuckDB,

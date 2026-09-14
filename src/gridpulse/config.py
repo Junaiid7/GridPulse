@@ -46,6 +46,9 @@ class Settings:
     #: ENTSO-E API key. Never defaults to a real key and never hardcoded in
     #: code; provided via the ``ENTSOE_API_KEY`` environment variable.
     entsoe_api_key: str | None = None
+    #: Optional path to a holidays CSV (see ``features.holiday``). Point
+    #: ``GRIDPULSE_HOLIDAYS_CSV`` at authoritative data for production models.
+    holidays_csv: Path | None = None
 
     @property
     def bronze_dir(self) -> Path:
@@ -72,7 +75,15 @@ def get_settings() -> Settings:
         http_timeout_s=float(os.environ.get("GRIDPULSE_HTTP_TIMEOUT_S", DEFAULT_HTTP_TIMEOUT_S)),
         http_retries=int(os.environ.get("GRIDPULSE_HTTP_RETRIES", DEFAULT_HTTP_RETRIES)),
         entsoe_api_key=os.environ.get("ENTSOE_API_KEY") or None,
+        holidays_csv=_opt_path(os.environ.get("GRIDPULSE_HOLIDAYS_CSV")),
     )
+
+
+def _opt_path(raw: str | None) -> Path | None:
+    """Return ``Path(raw)`` when set, else ``None`` (skips empty strings)."""
+    if not raw:
+        return None
+    return Path(raw)
 
 
 def require_entsoe_api_key(settings: Settings) -> str:
