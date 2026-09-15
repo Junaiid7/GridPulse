@@ -66,3 +66,8 @@ Thumbs.db
 !/data/bronze/.gitkeep
 !/data/silver/.gitkeep
 !/data/gold/.gitkeep
+
+# ---- Run artifacts: data-quality reports are outputs of a run, not
+# source, so they stay out of Git too. -------------------------------
+/data/reports/*
+!/data/reports/.gitkeep
