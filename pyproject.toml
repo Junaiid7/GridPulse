@@ -20,7 +20,9 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 # Phase 3 requires tzdata for zoneinfo.ZoneInfo on Windows (no system tz db).
-dependencies = ["tzdata>=2024.1"]
+# Phase 4C adds LightGBM for quantile (probabilistic) regression; numpy/scipy
+# come in transitively as LightGBM's own requirements.
+dependencies = ["tzdata>=2024.1", "lightgbm>=4.7.0"]
 
 [project.optional-dependencies]
 # Minimum set required to run the test suite. Broader stack (Prefect, DuckDB,
