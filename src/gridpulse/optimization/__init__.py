@@ -25,6 +25,13 @@ Entry point
 
 Available strategies are exposed in :data:`STRATEGIES`.
 
+Phase 4D-B (backtesting) — :func:`run_dispatch_backtest` connects the Phase 4C
+per-offset P10/P50/P90 forecasts to :func:`run_dispatch` over a chronological
+test window and settles every schedule against *realised* gold residual + price
+(battery inflection value vs :class:`BatteryConfig` defaults). All backtest
+output is ``FIXTURE-VERIFIED``; see :mod:`gridpulse.optimization.backtest` for
+the documented conventions and the fixture-vs-live separation.
+
 Usage example
 -------------
 ::
@@ -45,6 +52,19 @@ See :mod:`gridpulse.optimization.contract` for input validation rules and
 """
 
 from .battery import BatteryConfig, BatteryModel, ETA_TOL
+from .backtest import (
+    ASOF_POLICY,
+    DATA_STATUS,
+    PRICE_AVAILABILITY_CONVENTION,
+    BacktestResult,
+    ForecastProfile,
+    ForecastProfilesResult,
+    assemble_dispatch_input,
+    bootstrap_cost_difference_ci,
+    build_forecast_profiles,
+    run_dispatch_backtest,
+    settle_day,
+)
 from .contract import (
     HORIZON_HOURS,
     PRICE_EPS,
@@ -69,4 +89,16 @@ __all__ = [
     "DispatchInfeasible",
     "run_dispatch",
     "STRATEGIES",
+    # Phase 4D-B backtesting
+    "run_dispatch_backtest",
+    "build_forecast_profiles",
+    "ForecastProfile",
+    "ForecastProfilesResult",
+    "assemble_dispatch_input",
+    "settle_day",
+    "bootstrap_cost_difference_ci",
+    "BacktestResult",
+    "DATA_STATUS",
+    "PRICE_AVAILABILITY_CONVENTION",
+    "ASOF_POLICY",
 ]

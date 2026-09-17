@@ -176,8 +176,10 @@ through the same ordering rules. In production the scenario profiles would come
 from Phase 4C's predictive distribution; offline, `tests/support/dispatch_fixture.py`
 builds an explicitly synthetic ±10% band so the suite is FIXTURE-VERIFIED.
 
-Phase 4D-B will consume `DispatchResult.to_dict()` row-by-row to run historical
-backtests across strategies.
+Phase 4D-B consumes `DispatchResult.to_dict()` row-by-row to run historical
+backtests across strategies — the per-offset forecast-profile harness,
+settlement semantics and fixture-vs-live separation are documented in
+`docs/backtest.md`.
 
 ## Repository layout
 
