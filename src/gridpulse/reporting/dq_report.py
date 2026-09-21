@@ -24,12 +24,9 @@ No secrets are stored; API keys are never written to reports.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
-from ..transformation.times import AMSTERDAM_TZ, local_time
 
 
 def _collect_datasets(run) -> list[dict[str, Any]]:
@@ -170,7 +167,7 @@ class DataQualityReport:
         return {
             "report": {
                 "schema_version": "1.0",
-                "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+                "generated_at_utc": datetime.now(UTC).isoformat(),
                 "gridpulse_version": run.gridpulse_version,
                 "python_version": run.python_version,
                 "requested_window": {
@@ -240,8 +237,8 @@ class DataQualityReport:
         # Summary
         s = d["summary"]
         h("## SUMMARY\n")
-        h(f"| Metric | Value |")
-        h(f"|--------|-------|")
+        h("| Metric | Value |")
+        h("|--------|-------|")
         h(f"| Open-Meteo datasets verified (live) | {s['open_meteo_datasets_verified']} |")
         h(f"| ENTSO-E datasets verified (live) | {s['entsoe_datasets_verified']} |")
         h(f"| ENTSO-E datasets unavailable | {s['entsoe_datasets_unavailable']} |")

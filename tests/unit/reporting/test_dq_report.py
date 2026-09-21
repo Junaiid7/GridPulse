@@ -9,10 +9,11 @@ summary that distinguishes live-verified from unavailable datasets.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from gridpulse.config import Settings
+from gridpulse.ingestion.weather.variables import Location
 from gridpulse.pipeline.runner import (
     DatasetResult,
     FeatureResult,
@@ -20,9 +21,8 @@ from gridpulse.pipeline.runner import (
     PipelineRun,
 )
 from gridpulse.reporting.dq_report import DataQualityReport
-from gridpulse.ingestion.weather.variables import Location
 
-UTC = timezone.utc
+UTC = UTC
 
 START = datetime(2024, 1, 1, tzinfo=UTC)
 END = datetime(2024, 1, 2, tzinfo=UTC)
@@ -140,8 +140,15 @@ def test_report_dict_sections(tmp_path: Path) -> None:
 
     # Render a markdown view (exercise the formatter, check key headings).
     md = report.to_markdown()
-    for section in ("## TIME POLICY", "## SUMMARY", "## SOURCE / COVERAGE / VALUES",
-                    "## ENERGY", "## WEATHER", "## IMBALANCE", "## PROVENANCE"):
+    for section in (
+        "## TIME POLICY",
+        "## SUMMARY",
+        "## SOURCE / COVERAGE / VALUES",
+        "## ENERGY",
+        "## WEATHER",
+        "## IMBALANCE",
+        "## PROVENANCE",
+    ):
         assert section in md
     assert "Golden" not in md or "ENERGY" in md
 
@@ -155,7 +162,9 @@ def test_report_write_outputs_json_and_markdown(tmp_path: Path) -> None:
 
     data = json.loads(json_path.read_text(encoding="utf-8"))
     assert data["summary"]["imbalance_status"].startswith("UNVERIFIED")
-    assert md_path.read_text(encoding="utf-8").startswith("# GridPulse Data-Quality Report")
+    assert md_path.read_text(encoding="utf-8").startswith(
+        "# GridPulse Data-Quality Report"
+    )
 
 
 def test_serialization_is_json_clean(tmp_path: Path) -> None:

@@ -5,9 +5,9 @@ from __future__ import annotations
 from gridpulse.transformation.schema import (
     GOLD_COLUMNS,
     GOLD_SCHEMA,
+    SCHEMA_VERSION,
     SILVER_COLUMNS,
     SILVER_SCHEMA,
-    SCHEMA_VERSION,
     Column,
     column_names,
 )

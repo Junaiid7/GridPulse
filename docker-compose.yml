@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gridpulse-api
+    ports:
+      - "8000:8000"
+    environment:
+      - GRIDPULSE_DATA_DIR=/app/data
+      - GRIDPULSE_LOG_LEVEL=INFO
+      - ENTSOE_API_KEY=${ENTSOE_API_KEY:-}
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+    command: uvicorn gridpulse.api.app:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gridpulse-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - GRIDPULSE_DATA_DIR=/app/data
+      - GRIDPULSE_LOG_LEVEL=INFO
+      - ENTSOE_API_KEY=${ENTSOE_API_KEY:-}
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+    command: streamlit run src/gridpulse/dashboard/app.py --server.address=0.0.0.0 --server.port=8501
+    restart: unless-stopped
+    depends_on:
+      - api

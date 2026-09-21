@@ -34,7 +34,11 @@ def test_result_structure_and_data_status(feature_rows):
     assert res.info["n_aligned_rows_evaluated"] <= res.info["n_test_row_candidates"]
 
     # Chronological split reported with monotonic boundaries.
-    assert res.split["train_start"] < res.split["validation_start"] < res.split["test_start"]
+    assert (
+        res.split["train_start"]
+        < res.split["validation_start"]
+        < res.split["test_start"]
+    )
     counts = res.train_validation_test_counts
     assert counts["train"] > counts["test"] > 0
 
@@ -49,15 +53,17 @@ def test_naive_is_a_sane_baseline_on_the_synthetic(feature_rows):
     scale); we do NOT hard-assert a specific winner — the fixture report states
     the observed A vs B outcome."""
     res = run_benchmark(feature_rows, seed=0)
-    naive = res.models[0]["metrics"]           # model A = seasonal naive
+    naive = res.models[0]["metrics"]  # model A = seasonal naive
     assert naive["mae"] is not None
-    assert naive["mae"] < 800.0                 # ~±50-300 MW drift, not thousands
+    assert naive["mae"] < 800.0  # ~±50-300 MW drift, not thousands
 
 
 def test_determinism_under_fixed_seed(feature_rows):
     a = run_benchmark(feature_rows, seed=7)
     b = run_benchmark(feature_rows, seed=7)
-    assert json.dumps(a.to_dict(), sort_keys=True) == json.dumps(b.to_dict(), sort_keys=True)
+    assert json.dumps(a.to_dict(), sort_keys=True) == json.dumps(
+        b.to_dict(), sort_keys=True
+    )
 
 
 def test_write_artefacts(tmp_path, feature_rows):
@@ -78,7 +84,9 @@ def test_custom_split_is_honoured(feature_rows):
     from gridpulse.forecast.split import chronological_split_by_fraction
 
     ds = build_forecasting_dataset(feature_rows)
-    split = chronological_split_by_fraction(ds.issue_times, train_fraction=0.6, validation_fraction=0.2)
+    split = chronological_split_by_fraction(
+        ds.issue_times, train_fraction=0.6, validation_fraction=0.2
+    )
     res = run_benchmark(feature_rows, split=split, seed=5)
     assert res.info["n_aligned_rows_evaluated"] >= 1
     # A smaller train window still yields a complete result.

@@ -10,16 +10,16 @@ flips, but the code never overclaims by itself.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Mapping, Optional
 
 from .contract import build_forecasting_dataset
 from .evaluate import (
-    compute_point_metrics,
     bootstrap_mae_ci,
     bootstrap_mae_difference_ci,
+    compute_point_metrics,
     probabilistic_metrics,
 )
 from .models import LinearRegressionModel, QuantileRegressionModel, SeasonalNaiveModel
@@ -49,13 +49,13 @@ MAPE_MIN_ABS = 1e-3
 def run_benchmark(
     feature_rows,
     *,
-    split: Optional[ChronologicalSplit] = None,
+    split: ChronologicalSplit | None = None,
     train_fraction: float = 0.7,
     validation_fraction: float = 0.15,
     seed: int = 0,
     mape_min_abs: float = MAPE_MIN_ABS,
     issue_hour_utc: int = 6,
-) -> "BenchmarkResult":
+) -> BenchmarkResult:
     """Run the phase-8 comparison and return the structured result.
 
     ``feature_rows`` are the pipeline feature-table rows (``read_table``
@@ -152,7 +152,7 @@ def run_benchmark(
         "seed": seed,
         "gridpulse_version": _gridpulse_version(),
         "python_version": _python_version(),
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at_utc": datetime.now(UTC).isoformat(timespec="seconds"),
     }
 
     info = {
@@ -198,14 +198,14 @@ def run_benchmark(
 def run_probabilistic_benchmark(
     feature_rows,
     *,
-    split: Optional[ChronologicalSplit] = None,
+    split: ChronologicalSplit | None = None,
     train_fraction: float = 0.7,
     validation_fraction: float = 0.15,
     seed: int = 0,
     mape_min_abs: float = MAPE_MIN_ABS,
     issue_hour_utc: int = 6,
-    quantile_model_kwargs: Optional[dict] = None,
-) -> "ProbabilisticBenchmarkResult":
+    quantile_model_kwargs: dict | None = None,
+) -> ProbabilisticBenchmarkResult:
     """Phase 4C comparison A / B / C.
 
     A = seasonal naive 24h (point), B = ridge linear regression (point),
@@ -325,7 +325,7 @@ def run_probabilistic_benchmark(
         "quantile_model": _summarise_fit(model_c.metadata()),
         "gridpulse_version": _gridpulse_version(),
         "python_version": _python_version(),
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at_utc": datetime.now(UTC).isoformat(timespec="seconds"),
     }
 
     calibration = {
@@ -414,103 +414,103 @@ class ProbabilisticBenchmarkResult:
         }
 
     def to_markdown(self) -> str:
-        l = []
-        l.append("# Probabilistic Forecasting Benchmark (Phase 4C)")
-        l.append("")
-        l.append(f"**DATA STATUS = `{self.info['data_status']}`**")
-        l.append("")
-        l.append(
+        lines = []
+        lines.append("# Probabilistic Forecasting Benchmark (Phase 4C)")
+        lines.append("")
+        lines.append(f"**DATA STATUS = `{self.info['data_status']}`**")
+        lines.append("")
+        lines.append(
             f"- Target: `{self.info['target_column']}` · horizon "
             f"{self.info['horizon_hours']} h · issue once daily at "
             f"{self.info['issue_hour_utc']}:00 UTC"
         )
-        l.append(
+        lines.append(
             f"- Aligned test rows evaluated: `{self.info['n_aligned_rows_evaluated']}` "
             f"of `{self.info['n_test_row_candidates']}` "
             f"(train={self.train_validation_test_counts['train']}, "
             f"validation={self.train_validation_test_counts['validation']}, "
             f"test={self.train_validation_test_counts['test']} rows)"
         )
-        l.append(f"- As-of policy: {self.info['asof_policy']}")
-        l.append(f"- Statement: {self.info['statement']}")
-        l.append("")
-        l.append("## Point metrics (P50 for model C; aligned test rows)")
-        l.append("")
-        l.append("| model | MAE (MW) | RMSE (MW) | MAPE (%) | bias (MW) | n = |")
-        l.append("|---|---|---|---|---|---|")
+        lines.append(f"- As-of policy: {self.info['asof_policy']}")
+        lines.append(f"- Statement: {self.info['statement']}")
+        lines.append("")
+        lines.append("## Point metrics (P50 for model C; aligned test rows)")
+        lines.append("")
+        lines.append("| model | MAE (MW) | RMSE (MW) | MAPE (%) | bias (MW) | n = |")
+        lines.append("|---|---|---|---|---|---|")
         for m in self.models:
             met = m["metrics"]
             label = m["name"] + ("" if m["kind"] == "point" else " (P50)")
-            l.append(
+            lines.append(
                 f"| {label} | {_fmt(met['mae'])} | {_fmt(met['rmse'])} | "
                 f"{_fmt(met['mape'])} | {_fmt(met['bias'])} | {met['n_valid_pairs']} |"
             )
-        l.append("")
-        l.append("## Probabilistic metrics (model C)")
-        l.append("")
+        lines.append("")
+        lines.append("## Probabilistic metrics (model C)")
+        lines.append("")
         c = self.models[2]
         prob = c["probabilistic_metrics"]
-        l.append("### Pinball loss (per quantile; lower is better)")
-        l.append("")
+        lines.append("### Pinball loss (per quantile; lower is better)")
+        lines.append("")
         for q in ("0.10", "0.50", "0.90"):
-            l.append(f"- P{q} pinball: `{_fmt(prob['pinball'][q])}`")
-        l.append("")
-        l.append("### Empirical quantile & interval coverage")
-        l.append("")
-        l.append("| quantile / interval | nominal | observed |")
-        l.append("|---|---|---|")
-        l.append(f"| P10 | 0.10 | {_fmt(prob['empirical_coverage']['0.10'])} |")
-        l.append(f"| P50 | 0.50 | {_fmt(prob['empirical_coverage']['0.50'])} |")
-        l.append(f"| P90 | 0.90 | {_fmt(prob['empirical_coverage']['0.90'])} |")
-        l.append(f"| [P10, P90] (80%) | 0.80 | {_fmt(prob['interval_coverage'])} |")
-        l.append("")
-        l.append("### Interval width (sharpness; P90 - P10 in MW)")
-        l.append("")
+            lines.append(f"- P{q} pinball: `{_fmt(prob['pinball'][q])}`")
+        lines.append("")
+        lines.append("### Empirical quantile & interval coverage")
+        lines.append("")
+        lines.append("| quantile / interval | nominal | observed |")
+        lines.append("|---|---|---|")
+        lines.append(f"| P10 | 0.10 | {_fmt(prob['empirical_coverage']['0.10'])} |")
+        lines.append(f"| P50 | 0.50 | {_fmt(prob['empirical_coverage']['0.50'])} |")
+        lines.append(f"| P90 | 0.90 | {_fmt(prob['empirical_coverage']['0.90'])} |")
+        lines.append(f"| [P10, P90] (80%) | 0.80 | {_fmt(prob['interval_coverage'])} |")
+        lines.append("")
+        lines.append("### Interval width (sharpness; P90 - P10 in MW)")
+        lines.append("")
         w = prob["interval_width"]
-        l.append(
+        lines.append(
             f"- mean `{_fmt(w['mean'])}` · median `{_fmt(w['median'])}` · "
             f"min `{_fmt(w['min'])}` · max `{_fmt(w['max'])}` · "
             f"std `{_fmt(w['std'])}`"
         )
-        l.append("")
-        l.append("### Risk score (relative uncertainty, `(P90-P10)/|P50|`)")
-        l.append("")
+        lines.append("")
+        lines.append("### Risk score (relative uncertainty, `(P90-P10)/|P50|`)")
+        lines.append("")
         r = prob["risk_score"]
-        l.append(
+        lines.append(
             f"- mean `{_fmt(r['mean'])}` · median `{_fmt(r['median'])}` · "
             f"n P50 near-zero `{r['n_near_zero_p50']}`"
         )
-        l.append("")
-        l.append("### Quantile crossing")
-        l.append("")
+        lines.append("")
+        lines.append("### Quantile crossing")
+        lines.append("")
         x = c["quantile_crossing"]
-        l.append(
+        lines.append(
             f"- raw triples `{x['n_triples']}`, crossing detected `{x['n_detected']}`, "
             f"corrected `{x['n_corrected']}` (deterministic ascending sort; never hidden)"
         )
-        l.append("")
-        l.append("## Calibration note")
-        l.append("")
-        l.append(self.calibration["note"])
-        l.append("")
+        lines.append("")
+        lines.append("## Calibration note")
+        lines.append("")
+        lines.append(self.calibration["note"])
+        lines.append("")
         cmp = self.comparison
-        l.append(
+        lines.append(
             f"## MAE difference A - B = `{_fmt(cmp['difference'])}` "
             f"(95% CI [{_fmt(cmp['ci_low'])}, {_fmt(cmp['ci_high'])}])"
         )
-        l.append("")
-        l.append(f"- {cmp['note']}")
-        l.append("")
-        l.append("## Reproducibility")
-        l.append("")
+        lines.append("")
+        lines.append(f"- {cmp['note']}")
+        lines.append("")
+        lines.append("## Reproducibility")
+        lines.append("")
         rp = self.reproducibility
-        l.append(
+        lines.append(
             f"- seed `{rp['seed']}`, gridpulse `{rp['gridpulse_version']}`, "
             f"python `{rp['python_version']}`, generated `{rp['generated_at_utc']}` UTC"
         )
         qm = rp.get("quantile_model") or {}
         if qm:
-            l.append(
+            lines.append(
                 f"- quantile model: lightgbm `{qm.get('library', '?')}`, "
                 f"n_estimators `{qm.get('n_estimators')}`, "
                 f"learning_rate `{qm.get('learning_rate')}`, "
@@ -520,8 +520,8 @@ class ProbabilisticBenchmarkResult:
                 f"fitted `{qm.get('fitted')}`, "
                 f"n_train_rows `{qm.get('n_train_rows')}`"
             )
-        l.append("")
-        return "\n".join(l)
+        lines.append("")
+        return "\n".join(lines)
 
     def write(self, out_dir, *, stem: str = "forecast_benchmark_phase4c") -> list:
         out_dir = Path(out_dir)
@@ -559,67 +559,67 @@ class BenchmarkResult:
         }
 
     def to_markdown(self) -> str:
-        l = []
-        l.append("# Forecasting Baseline Comparison (Phase 4B)")
-        l.append("")
-        l.append(f"**DATA STATUS = `{self.info['data_status']}`**")
-        l.append("")
-        l.append(
+        lines = []
+        lines.append("# Forecasting Baseline Comparison (Phase 4B)")
+        lines.append("")
+        lines.append(f"**DATA STATUS = `{self.info['data_status']}`**")
+        lines.append("")
+        lines.append(
             f"- Target: `{self.info['target_column']}` · horizon "
             f"{self.info['horizon_hours']} h · issue once daily at "
             f"{self.info['issue_hour_utc']}:00 UTC"
         )
-        l.append(
+        lines.append(
             f"- Aligned test pairs evaluated: "
             f"`{self.info['n_aligned_rows_evaluated']}` "
             f"(train={self.train_validation_test_counts['train']}, "
             f"validation={self.train_validation_test_counts['validation']}, "
             f"test={self.train_validation_test_counts['test']} rows)"
         )
-        l.append(f"- As-of policy: {self.info['asof_policy']}")
-        l.append(f"- Statement: {self.info['statement']}")
-        l.append("")
-        l.append("## Per-model metrics (test window, aligned rows)")
-        l.append("")
-        l.append("| model | MAE (MW) | RMSE (MW) | MAPE (%) | bias (MW) | median abs err (MW) | n = |")
-        l.append("|---|---|---|---|---|---|---|")
+        lines.append(f"- As-of policy: {self.info['asof_policy']}")
+        lines.append(f"- Statement: {self.info['statement']}")
+        lines.append("")
+        lines.append("## Per-model metrics (test window, aligned rows)")
+        lines.append("")
+        lines.append("| model | MAE (MW) | RMSE (MW) | MAPE (%) | bias (MW) | median abs err (MW) | n = |")
+        lines.append("|---|---|---|---|---|---|---|")
         for m in self.models:
             met = m["metrics"]
-            l.append(
+            lines.append(
                 f"| {m['name']} | {_fmt(met['mae'])} | {_fmt(met['rmse'])} | "
                 f"{_fmt(met['mape'])} | {_fmt(met['bias'])} | "
                 f"{_fmt(met['median_absolute_error'])} | {met['n_valid_pairs']} |"
             )
-        l.append("")
-        l.append("## Bootstrap MAE CIs (percentile, fixed seed)")
-        l.append("")
-        l.append("| model | MAE (MW) | 95% CI |")
-        l.append("|---|---|---|")
+        lines.append("")
+        lines.append("## Bootstrap MAE CIs (percentile, fixed seed)")
+        lines.append("")
+        lines.append("| model | MAE (MW) | 95% CI |")
+        lines.append("|---|---|---|")
         for m in self.models:
             ci = m["mae_ci"]
-            l.append(
+            lines.append(
                 f"| {m['name']} | {_fmt(ci['mae'])} | "
                 f"[{_fmt(ci['ci_low'])}, {_fmt(ci['ci_high'])}] |"
             )
-        l.append("")
+        lines.append("")
         c = self.comparison
-        l.append(
+        lines.append(
             f"## MAE difference A - B = `{_fmt(c['difference'])}` "
             f"(95% CI [{_fmt(c['ci_low'])}, {_fmt(c['ci_high'])}])"
         )
-        l.append("")
-        l.append(f"- {c['note']}")
-        l.append("")
-        l.append("## Reproducibility")
-        l.append("")
+        lines.append("")
+        lines.append(f"- {c['note']}")
+        lines.append("")
+        lines.append("## Reproducibility")
+        lines.append("")
         r = self.reproducibility
-        l.append(
+        lines.append(
             f"- seed `{r['seed']}`, gridpulse `{r['gridpulse_version']}`, "
             f"python `{r['python_version']}`, generated "
             f"`{r['generated_at_utc']}` UTC"
         )
-        l.append("")
-        return "\n".join(l)
+        lines.append("")
+        return "\n".join(lines)
 
     def write(self, out_dir, *, stem: str = "forecast_benchmark_phase4b") -> list:
         out_dir = Path(out_dir)

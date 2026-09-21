@@ -4,7 +4,7 @@ insufficient-history handling (None, never a silent fill)."""
 from __future__ import annotations
 
 import math
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -12,7 +12,7 @@ from gridpulse.forecast.contract import build_forecasting_dataset
 from gridpulse.forecast.evaluate import compute_point_metrics
 from gridpulse.forecast.models import SeasonalNaiveModel
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def _periodic_feature_rows(n_days: int = 6) -> list[dict]:

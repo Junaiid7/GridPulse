@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from gridpulse.features.holiday import NetherlandsHolidayCalendar
-from gridpulse.transformation.gold import GoldInputs, build_gold_hourly, read_gold, write_gold
+from gridpulse.transformation.gold import (
+    GoldInputs,
+    build_gold_hourly,
+    read_gold,
+    write_gold,
+)
 
-UTC = timezone.utc
+UTC = UTC
 
 # Christmas Day 2024 is a Wednesday in the local calendar.
 H_12 = datetime(2024, 12, 25, 12, 0, tzinfo=UTC)
@@ -42,7 +47,7 @@ def test_build_gold_hourly_union_grid() -> None:
 
 
 def test_build_gold_hourly_values_and_holiday() -> None:
-    rows = rows_by_ts = {r.timestamp_utc: r for r in build_gold_hourly(_inputs())}
+    rows_by_ts = {r.timestamp_utc: r for r in build_gold_hourly(_inputs())}
 
     r12 = rows_by_ts[H_12]
     assert r12.load_mw == 100.0

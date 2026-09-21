@@ -17,9 +17,10 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import datetime, timezone
+from collections.abc import Iterable, Mapping, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
 
 from .provenance import Provenance
 from .schema import SCHEMA_VERSION
@@ -75,7 +76,7 @@ def _serialize(cell: Any) -> str:
     if isinstance(cell, datetime):
         # Aware ISO with explicit offset — never ambiguous, always parseable.
         if cell.tzinfo is None:
-            cell = cell.replace(tzinfo=timezone.utc)
+            cell = cell.replace(tzinfo=UTC)
         return cell.isoformat()
     if isinstance(cell, bool):
         return "true" if cell else "false"

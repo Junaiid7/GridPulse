@@ -2,7 +2,6 @@
 
 from .errors import (
     AuthError,
-    ConfigurationError as IngestionConfigurationError,
     EmptyResponseError,
     HttpError,
     IngestionError,
@@ -12,8 +11,18 @@ from .errors import (
     RateLimitError,
     ValidationError,
 )
+from .errors import (
+    ConfigurationError as IngestionConfigurationError,
+)
 from .http import HttpClient, HttpResponse, mask_url
-from .models import DataPoint, FetchResult, TimeRange, TimeSeries, chunk_range, ensure_utc
+from .models import (
+    DataPoint,
+    FetchResult,
+    TimeRange,
+    TimeSeries,
+    chunk_range,
+    ensure_utc,
+)
 from .storage import BronzeWrite, write_bronze
 from .validation import (
     Issue,

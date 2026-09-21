@@ -36,8 +36,8 @@ battery-MWh.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Optional, Sequence
 
 #: Tolerance for validating efficiency products.
 ETA_TOL = 1e-9
@@ -71,8 +71,8 @@ class BatteryConfig:
     soc_min: float = 0.10
     soc_max: float = 0.90
     initial_soc: float = 0.50
-    charge_efficiency: Optional[float] = None
-    discharge_efficiency: Optional[float] = None
+    charge_efficiency: float | None = None
+    discharge_efficiency: float | None = None
 
     def __post_init__(self):
         capacity = _as_float("capacity_mwh", self.capacity_mwh)
@@ -183,7 +183,7 @@ class BatteryModel:
         charge_mw: Sequence[float],
         discharge_mw: Sequence[float],
         *,
-        start_soc_mwh: Optional[float] = None,
+        start_soc_mwh: float | None = None,
     ) -> list[float]:
         """SOC (MWh) at the *end* of each period, in order.
 

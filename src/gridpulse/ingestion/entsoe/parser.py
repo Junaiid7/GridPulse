@@ -12,10 +12,10 @@ from __future__ import annotations
 
 import io
 import logging
-import zipfile
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta, timezone
-from typing import Iterator, Optional
+import zipfile
+from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 
 from ..common.errors import EmptyResponseError, MalformedResponseError, NoDataError
 from ..common.models import DataPoint, TimeSeries
@@ -41,11 +41,11 @@ def _parse_datetime(text: str) -> datetime:
     except ValueError as exc:
         raise MalformedResponseError(f"unrecognised timestamp {text!r}") from exc
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
 
 
-def _resolution_to_minutes(resolution: str) -> Optional[int]:
+def _resolution_to_minutes(resolution: str) -> int | None:
     return RESOLUTION_MINUTES.get(resolution.strip())
 
 
@@ -108,8 +108,8 @@ def _points_from_period(period: ET.Element, value_label: str, curve_type: str) -
     for point in period:
         if _local(point.tag) != "Point":
             continue
-        position: Optional[int] = None
-        value: Optional[float] = None
+        position: int | None = None
+        value: float | None = None
         for child in point:
             n = _local(child.tag)
             if n == "position":
@@ -126,7 +126,7 @@ def _points_from_period(period: ET.Element, value_label: str, curve_type: str) -
     if curve_type == "A03":
         # Missing positions repeat the last known value (forward fill).
         position = 1
-        last: Optional[float] = None
+        last: float | None = None
         while True:
             ts = start + (position - 1) * step
             if ts >= end:
@@ -173,7 +173,7 @@ def _build_series(
     )
 
 
-def _infer_resolution(points: list[DataPoint]) -> Optional[int]:
+def _infer_resolution(points: list[DataPoint]) -> int | None:
     """Infer the median step between consecutive points as minutes."""
     if len(points) < 2:
         return None

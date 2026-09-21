@@ -16,18 +16,19 @@ from __future__ import annotations
 
 import logging
 import platform
-import statistics
-import sys
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any
 
 from .. import __version__
 from ..config import ConfigurationError, Settings, get_settings
+from ..features.calendar import calendar_features
+from ..features.rolling import rolling_mean, rolling_std
+from ..features.weather import weather_features
 from ..ingestion.common.errors import (
     AuthError,
-    EmptyResponseError,
     HttpError,
     IngestionError,
     NoDataError,
@@ -35,7 +36,6 @@ from ..ingestion.common.errors import (
 from ..ingestion.common.models import FetchResult, TimeSeries, ensure_utc
 from ..ingestion.common.storage import write_bronze
 from ..ingestion.common.validation import (
-    Issue,
     ValidationReport,
     aggregate,
     validate_non_negative,
@@ -49,9 +49,6 @@ from ..ingestion.entsoe.parser import (
     parse_generation,
     parse_load,
 )
-from ..features.calendar import calendar_features
-from ..features.rolling import rolling_mean, rolling_std
-from ..features.weather import weather_features
 from ..ingestion.weather.open_meteo import OpenMeteoClient
 from ..ingestion.weather.parser import parse_historical_json
 from ..ingestion.weather.variables import NL_POINTS, NON_NEGATIVE_CONTRACT, Location
@@ -163,7 +160,7 @@ class PipelineRun:
 
     @property
     def ok(self) -> bool:
-        return len(self.errors) == 0 and self.report_paths
+        return len(self.errors) == 0 and bool(self.report_paths)
 
 
 # ── Helpers ────────────────────────────────────────────────────────────
@@ -690,7 +687,7 @@ def _build_gold(
     csv_path, _ = write_gold(
         gold_root,
         rows,
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )
 
     residual_vals = [r.residual_load_mw for r in rows if r.residual_load_mw is not None]
@@ -896,7 +893,7 @@ def run_pipeline(
         settings=settings,
         requested_start=start,
         requested_end=end,
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
         bronze_root=bronze_root,
         silver_root=silver_root,
         gold_root=gold_root,
@@ -960,7 +957,7 @@ def run_pipeline(
 
     # ── Report ──
     logger.info("Writing data-quality report...")
-    run.finished_at = datetime.now(timezone.utc)
+    run.finished_at = datetime.now(UTC)
     try:
         report = DataQualityReport(run)
         json_path, md_path = report.write(report_out)

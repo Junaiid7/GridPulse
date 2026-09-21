@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-
-import pytest
+from datetime import UTC, datetime, timedelta
 
 from gridpulse.forecast.contract import (
     CORE_FEATURE_COLUMNS,
-    ForecastRow,
     build_forecasting_dataset,
 )
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def _by_ts(rows):
@@ -23,7 +20,7 @@ def test_issue_selection_and_cadence(feature_rows):
     ds = build_forecasting_dataset(feature_rows)
     assert len(ds) > 0
     for r in ds.rows:
-        assert r.issue_time.hour == 6          # once-daily issue at 06:00 UTC
+        assert r.issue_time.hour == 6  # once-daily issue at 06:00 UTC
         assert r.issue_time.minute == 0
         assert r.target_time - r.issue_time == timedelta(hours=24)
     assert ds.metadata["issue_cadence"] == "once_daily"
@@ -36,7 +33,9 @@ def test_issue_selection_and_cadence(feature_rows):
 def test_predictors_are_all_core_plus_weather(feature_rows, synthetic_pipeline):
     ds = build_forecasting_dataset(feature_rows)
     assert set(CORE_FEATURE_COLUMNS) <= set(ds.predictor_columns)
-    weather_cols = {c for c in synthetic_pipeline.features.columns if c.startswith("weather_")}
+    weather_cols = {
+        c for c in synthetic_pipeline.features.columns if c.startswith("weather_")
+    }
     assert weather_cols <= set(ds.predictor_columns)
     # No target/label column sneaks into predictors.
     assert "residual_load_mw" not in ds.predictor_columns
@@ -65,10 +64,15 @@ def test_label_and_vintage_from_the_right_rows(feature_rows):
 def test_non_issue_rows_are_not_counts(feature_rows):
     ds = build_forecasting_dataset(feature_rows)
     n_issues = sum(1 for r in ds.rows)
-    n_mismatch = sum(1 for r in feature_rows if datetime.fromisoformat(r["target_utc"]).hour != 6)
+    n_mismatch = sum(
+        1 for r in feature_rows if datetime.fromisoformat(r["target_utc"]).hour != 6
+    )
     assert ds.metadata["rows_mismatched_issue_hour"] == n_mismatch
     assert ds.metadata["rows_skipped_no_label"] >= 0
-    assert ds.metadata["rows_requested"] == n_issues + n_mismatch + ds.metadata["rows_skipped_no_label"]
+    assert (
+        ds.metadata["rows_requested"]
+        == n_issues + n_mismatch + ds.metadata["rows_skipped_no_label"]
+    )
 
 
 def test_rows_are_sorted_by_issue_time(feature_rows):

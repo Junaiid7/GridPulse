@@ -22,15 +22,14 @@ from __future__ import annotations
 
 import argparse
 import logging
-import os
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 
 def _parse_date(raw: str) -> datetime:
     """Parse a YYYY-MM-DD string as a UTC-aware midnight datetime."""
-    return datetime.combine(date.fromisoformat(raw), datetime.min.time()).replace(tzinfo=timezone.utc)
+    return datetime.combine(date.fromisoformat(raw), datetime.min.time()).replace(tzinfo=UTC)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -96,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     # Resolve dates
-    today = datetime.combine(date.today(), datetime.min.time()).replace(tzinfo=timezone.utc)
+    today = datetime.combine(date.today(), datetime.min.time()).replace(tzinfo=UTC)
     if args.end is None:
         end = today - timedelta(days=1)  # yesterday
     else:

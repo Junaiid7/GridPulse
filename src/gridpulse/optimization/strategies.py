@@ -77,8 +77,7 @@ Constraints
 
 from __future__ import annotations
 
-import math
-from typing import Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
 
 from scipy.optimize import linprog
 
@@ -235,7 +234,6 @@ def _strategy_no_battery(inputs: DispatchInput) -> DispatchResult:
     ch = [0.0] * HORIZON_HOURS
     dis = [0.0] * HORIZON_HOURS
     cost = sum(p * r for p, r in zip(inputs.price_eur_mwh, inputs.residual_load_mw))
-    grid = [float(r) for r in inputs.residual_load_mw]
     return _build_result(
         inputs,
         strategy="no_battery",
@@ -478,7 +476,7 @@ def _build_result(
     dis: Sequence[float],
     status: str,
     solver: str,
-    message: Optional[str],
+    message: str | None,
     cost: float,
 ) -> DispatchResult:
     n = len(inputs.target_times)

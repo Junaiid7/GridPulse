@@ -9,8 +9,8 @@ ENTSO-E REST API and the widely used `entsoe-py` client (September 2026); see
 ``docs/data-sources.md`` for the verified-vs-uncertain register.
 """
 
-from .domains import Area, NL, DE_LU, BE
-from .client import EntsoeClient, ENTSOE_API_URL
+from .client import ENTSOE_API_URL, EntsoeClient
+from .domains import BE, DE_LU, NL, Area
 from .imbalance import EntsoeImbalancePrices, ImbalancePricesSource
 
 __all__ = ["Area", "NL", "DE_LU", "BE", "EntsoeClient", "ENTSOE_API_URL", "EntsoeImbalancePrices", "ImbalancePricesSource"]

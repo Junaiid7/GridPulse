@@ -31,7 +31,11 @@ def test_result_structure_and_data_status(feature_rows):
     assert res.info["n_aligned_rows_evaluated"] <= res.info["n_test_row_candidates"]
 
     # Chronological split.
-    assert res.split["train_start"] < res.split["validation_start"] < res.split["test_start"]
+    assert (
+        res.split["train_start"]
+        < res.split["validation_start"]
+        < res.split["test_start"]
+    )
     counts = res.train_validation_test_counts
     assert counts["train"] > counts["test"] > 0
 
@@ -52,7 +56,13 @@ def test_point_metrics_all_models_present(feature_rows):
         assert met["rmse"] is not None
     # C exposes its P50 point metrics explicitly named.
     c = res.models[2]
-    assert set(c["point_metrics_as_p50"]) >= {"mae", "rmse", "mape", "bias", "median_absolute_error"}
+    assert set(c["point_metrics_as_p50"]) >= {
+        "mae",
+        "rmse",
+        "mape",
+        "bias",
+        "median_absolute_error",
+    }
 
 
 def test_probabilistic_metrics_reported_for_model_c(feature_rows):
@@ -105,7 +115,12 @@ def test_quantile_ordering_holds_on_every_aligned_row(feature_rows):
 def test_calibration_reported_and_honest(feature_rows):
     res = run_probabilistic_benchmark(feature_rows, seed=0)
     cal = res.calibration
-    assert cal["nominal"] == {"p10": 0.10, "p50": 0.50, "p90": 0.90, "interval_80_coverage": 0.80}
+    assert cal["nominal"] == {
+        "p10": 0.10,
+        "p50": 0.50,
+        "p90": 0.90,
+        "interval_80_coverage": 0.80,
+    }
     # The note must NOT claim calibration is proven on the fixture.
     assert "not" in cal["note"].lower() and "evidence" in cal["note"].lower()
     assert "fixture" in cal["note"].lower()
@@ -114,7 +129,9 @@ def test_calibration_reported_and_honest(feature_rows):
 def test_determinism_under_fixed_seed(feature_rows):
     a = run_probabilistic_benchmark(feature_rows, seed=7)
     b = run_probabilistic_benchmark(feature_rows, seed=7)
-    assert json.dumps(a.to_dict(), sort_keys=True) == json.dumps(b.to_dict(), sort_keys=True)
+    assert json.dumps(a.to_dict(), sort_keys=True) == json.dumps(
+        b.to_dict(), sort_keys=True
+    )
 
 
 def test_write_artefacts(tmp_path, feature_rows):
@@ -138,7 +155,9 @@ def test_custom_split_is_honoured(feature_rows):
     from gridpulse.forecast.split import chronological_split_by_fraction
 
     ds = build_forecasting_dataset(feature_rows)
-    split = chronological_split_by_fraction(ds.issue_times, train_fraction=0.6, validation_fraction=0.2)
+    split = chronological_split_by_fraction(
+        ds.issue_times, train_fraction=0.6, validation_fraction=0.2
+    )
     res = run_probabilistic_benchmark(feature_rows, split=split, seed=5)
     assert res.info["n_aligned_rows_evaluated"] >= 1
     assert res.train_validation_test_counts["train"] >= 1
@@ -146,7 +165,9 @@ def test_custom_split_is_honoured(feature_rows):
 
 def test_quantile_model_kwargs_are_forwarded(feature_rows):
     res = run_probabilistic_benchmark(
-        feature_rows, seed=0, quantile_model_kwargs={"n_estimators": 30, "num_leaves": 7}
+        feature_rows,
+        seed=0,
+        quantile_model_kwargs={"n_estimators": 30, "num_leaves": 7},
     )
     qm = res.reproducibility["quantile_model"]
     assert qm["n_estimators"] == 30

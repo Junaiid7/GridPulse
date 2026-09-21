@@ -25,7 +25,6 @@ value. Negative residuals are VALID and never clamped.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 #: PSR codes that make up the "wind" category (wind-offshore + wind-onshore).
 WIND_PSR: tuple[str, ...] = ("B18", "B19")
@@ -48,17 +47,17 @@ _FLAG_SOLAR = "solar_missing"
 class ResidualResult:
     """Outcome of one residual-load computation."""
 
-    residual_mw: Optional[float]
-    load_mw: Optional[float]
-    wind_mw: Optional[float]
-    solar_mw: Optional[float]
+    residual_mw: float | None
+    load_mw: float | None
+    wind_mw: float | None
+    solar_mw: float | None
     flags: tuple[str, ...] = ()
 
 
 def compute_residual(
-    load_mw: Optional[float],
-    wind_mw: Optional[float],
-    solar_mw: Optional[float],
+    load_mw: float | None,
+    wind_mw: float | None,
+    solar_mw: float | None,
 ) -> ResidualResult:
     """Compute residual load under the documented missing-data policy."""
     if load_mw is None:

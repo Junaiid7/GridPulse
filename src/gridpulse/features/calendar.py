@@ -8,16 +8,15 @@ are Europe/Amsterdam local; ``is_weekend`` and ``is_holiday`` follow.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
-from ..transformation.times import AMSTERDAM_TZ, local_hour, local_time
+from ..transformation.times import AMSTERDAM_TZ, local_time
 from .holiday import HolidayCalendar
 
 
 def calendar_features(
     target_utc: datetime,
     *,
-    holiday_calendar: Optional[HolidayCalendar] = None,
+    holiday_calendar: HolidayCalendar | None = None,
     tz=AMSTERDAM_TZ,
 ) -> dict[str, object]:
     """Return the feature dict for one target hour (local Amsterdam time)."""

@@ -9,7 +9,7 @@ DATA STATUS: FIXTURE-VERIFIED (synthetic inputs, no real ENTSO-E data).
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 # --- path setup (mirrors phase4c script) ----------------------------------------
 from pathlib import Path
@@ -28,9 +28,9 @@ from gridpulse.optimization import (
 
 def _make_fixture_inputs() -> list[tuple[str, DispatchInput]]:
     """Build DispatchInput instances for each demo scenario."""
-    issue_time = datetime(2024, 1, 1, 0, 0, tzinfo=timezone.utc)
+    issue_time = datetime(2024, 1, 1, 0, 0, tzinfo=UTC)
     target_times = tuple(
-        datetime(2024, 1, 1, 6, 0, tzinfo=timezone.utc) + timedelta(hours=h)
+        datetime(2024, 1, 1, 6, 0, tzinfo=UTC) + timedelta(hours=h)
         for h in range(24)
     )
 
@@ -82,7 +82,7 @@ def _print_schedule(result: DispatchResult, inputs: DispatchInput, tag: str) -> 
 
     # Per-scenario costs for scenario strategies.
     if result.scenario_costs_eur and "weighted_total" in result.scenario_costs_eur:
-        print(f"  Scenario costs: ", end="")
+        print("  Scenario costs: ", end="")
         for k, v in result.scenario_costs_eur.items():
             print(f"{k}=EUR{v:,.2f}  ", end="")
         print()

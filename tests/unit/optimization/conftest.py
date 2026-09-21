@@ -9,7 +9,6 @@ pipeline per test/module.
 from __future__ import annotations
 
 import pytest
-
 from support.backtest_fixture import gold_by_timestamp, gold_hour_rows
 from support.synthetic_electricity import features_rows, run_synthetic_pipeline
 

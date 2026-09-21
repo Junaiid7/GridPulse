@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from gridpulse.transformation.provenance import Provenance
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def test_provenance_default_generated_at_is_utc_now() -> None:
@@ -36,7 +36,10 @@ def test_provenance_to_dict_serializes() -> None:
 
 
 def test_provenance_default_timezone_policy() -> None:
-    assert Provenance("silver", "s", "e").timezone_policy == "canonical_utc; local derived as Europe/Amsterdam"
+    assert (
+        Provenance("silver", "s", "e").timezone_policy
+        == "canonical_utc; local derived as Europe/Amsterdam"
+    )
 
 
 def test_provenance_is_frozen() -> None:
@@ -44,6 +47,8 @@ def test_provenance_is_frozen() -> None:
     try:
         p.tier = "gold"  # type: ignore[misc]
     except Exception as exc:  # noqa: BLE001 - frozen dataclass raises FrozenInstanceError
-        assert "FrozenInstanceError" in type(exc).__name__ or "frozen" in str(exc).lower()
+        assert (
+            "FrozenInstanceError" in type(exc).__name__ or "frozen" in str(exc).lower()
+        )
     else:
         raise AssertionError("Provenance should be immutable")

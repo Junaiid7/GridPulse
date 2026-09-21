@@ -21,12 +21,11 @@ leakage guarantee — explicit at the call site.
 from __future__ import annotations
 
 import json
-from typing import Optional, Sequence
 
 from ...ingestion.common.models import ensure_utc
 from ..contract import ForecastingDataset, ForecastRow
 
-Vec = list[Optional[float]]
+Vec = list[float | None]
 
 
 def select_rows(dataset: ForecastingDataset, start, end) -> list[ForecastRow]:

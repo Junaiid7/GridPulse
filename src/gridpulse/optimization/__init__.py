@@ -51,7 +51,6 @@ See :mod:`gridpulse.optimization.contract` for input validation rules and
 :mod:`gridpulse.optimization.strategies` for LP formulation details.
 """
 
-from .battery import BatteryConfig, BatteryModel, ETA_TOL
 from .backtest import (
     ASOF_POLICY,
     DATA_STATUS,
@@ -65,6 +64,7 @@ from .backtest import (
     run_dispatch_backtest,
     settle_day,
 )
+from .battery import ETA_TOL, BatteryConfig, BatteryModel
 from .contract import (
     HORIZON_HOURS,
     PRICE_EPS,

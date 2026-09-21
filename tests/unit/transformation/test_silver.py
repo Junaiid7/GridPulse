@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from gridpulse.ingestion.common.models import DataPoint, TimeSeries
-from gridpulse.transformation.silver import SilverRecord, clean_timeseries, read_silver, write_silver
+from gridpulse.transformation.silver import (
+    SilverRecord,
+    clean_timeseries,
+    read_silver,
+    write_silver,
+)
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def _series(
@@ -23,18 +28,22 @@ def _series(
         source="entsoe",
         entity="actual-total-load",
         unit="MW",
-        points=tuple(DataPoint(datetime.fromisoformat(t).astimezone(UTC), v) for t, v in points),
+        points=tuple(
+            DataPoint(datetime.fromisoformat(t).astimezone(UTC), v) for t, v in points
+        ),
         resolution_minutes=resolution_minutes,
         tz=tz,
     )
 
 
 def test_clean_normal_series_sorted_and_timelocal() -> None:
-    s = _series([
-        ("2024-01-01T11:45:00+00:00", 2.0),
-        ("2024-01-01T12:00:00+00:00", 3.0),
-        ("2024-01-01T12:15:00+00:00", 4.0),
-    ])
+    s = _series(
+        [
+            ("2024-01-01T11:45:00+00:00", 2.0),
+            ("2024-01-01T12:00:00+00:00", 3.0),
+            ("2024-01-01T12:15:00+00:00", 4.0),
+        ]
+    )
     records, report = clean_timeseries(s)
     assert [r.timestamp_utc.isoformat() for r in records] == [
         "2024-01-01T11:45:00+00:00",
@@ -49,10 +58,12 @@ def test_clean_normal_series_sorted_and_timelocal() -> None:
 
 def test_clean_non_monotonic_input_reported_as_error() -> None:
     # Cleaning must not silently reinterpret an unsorted input series.
-    s = _series([
-        ("2024-01-01T12:15:00+00:00", 4.0),
-        ("2024-01-01T12:00:00+00:00", 3.0),
-    ])
+    s = _series(
+        [
+            ("2024-01-01T12:15:00+00:00", 4.0),
+            ("2024-01-01T12:00:00+00:00", 3.0),
+        ]
+    )
     records, report = clean_timeseries(s)
     assert [r.timestamp_utc.isoformat() for r in records] == [
         "2024-01-01T12:00:00+00:00",
@@ -63,11 +74,13 @@ def test_clean_non_monotonic_input_reported_as_error() -> None:
 
 
 def test_clean_duplicate_timestamps_dropped() -> None:
-    s = _series([
-        ("2024-01-01T12:00:00+00:00", 10.0),
-        ("2024-01-01T12:00:00+00:00", 5.0),
-        ("2024-01-01T12:30:00+00:00", 7.0),
-    ])
+    s = _series(
+        [
+            ("2024-01-01T12:00:00+00:00", 10.0),
+            ("2024-01-01T12:00:00+00:00", 5.0),
+            ("2024-01-01T12:30:00+00:00", 7.0),
+        ]
+    )
     records, report = clean_timeseries(s)
     # First duplicate kept, second flagged in report; 2 Silver rows produced.
     assert len(records) == 2
@@ -117,21 +130,27 @@ def test_clean_empty_series() -> None:
 
 
 def test_write_silver_creates_csv_and_meta(tmp_path: Path) -> None:
-    _, report = clean_timeseries(_series([
-        ("2024-01-01T12:00:00+00:00", 10.0),
-        ("2024-01-01T12:15:00+00:00", 20.0),
-    ]))
+    _, report = clean_timeseries(
+        _series(
+            [
+                ("2024-01-01T12:00:00+00:00", 10.0),
+                ("2024-01-01T12:15:00+00:00", 20.0),
+            ]
+        )
+    )
     records = [
         SilverRecord(
             timestamp_utc=datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
-            timestamp_local=datetime(2024, 1, 1, 13, 0, tzinfo=timezone.utc),
+            timestamp_local=datetime(2024, 1, 1, 13, 0, tzinfo=UTC),
             value=10.0,
             unit="MW",
             source="entsoe",
             entity="actual-total-load",
         ),
     ]
-    csv_path, meta_path = write_silver(tmp_path, records, "entsoe", "actual-total-load", "MW", report=report)
+    csv_path, meta_path = write_silver(
+        tmp_path, records, "entsoe", "actual-total-load", "MW", report=report
+    )
     assert csv_path.name == "actual-total-load.csv"
     assert meta_path.name == "actual-total-load.meta.json"
     assert csv_path.exists()
@@ -142,7 +161,7 @@ def test_read_silver_roundtrip(tmp_path: Path) -> None:
     records = [
         SilverRecord(
             timestamp_utc=datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
-            timestamp_local=datetime(2024, 1, 1, 13, 0, tzinfo=timezone.utc),
+            timestamp_local=datetime(2024, 1, 1, 13, 0, tzinfo=UTC),
             value=10.5,
             unit="MW",
             source="entsoe",
@@ -160,7 +179,7 @@ def test_silver_entity_under_source(tmp_path: Path) -> None:
     records = [
         SilverRecord(
             timestamp_utc=datetime(2024, 1, 1, 12, 0, tzinfo=UTC),
-            timestamp_local=datetime(2024, 1, 1, 13, 0, tzinfo=timezone.utc),
+            timestamp_local=datetime(2024, 1, 1, 13, 0, tzinfo=UTC),
             value=10.0,
             unit="MW",
             source="ENTSO-E",

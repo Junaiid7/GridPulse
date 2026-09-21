@@ -8,7 +8,6 @@ from gridpulse.optimization import (
     BatteryConfig,
     DispatchInput,
     DispatchResult,
-    HORIZON_HOURS,
 )
 
 
@@ -30,23 +29,26 @@ def _make_valid_input(**overrides):
 def test_dispatch_input_requires_24_hour_horizon():
     """target_times must contain exactly 24 hourly timestamps."""
     with pytest.raises(ValueError, match="must contain exactly 24 hourly timestamps"):
-        _make_valid_input(target_times=tuple(
-            datetime(2024, 1, 1, 0, 0, tzinfo=None) + timedelta(hours=h)
-            for h in range(23)
-        ))
+        _make_valid_input(
+            target_times=tuple(
+                datetime(2024, 1, 1, 0, 0, tzinfo=None) + timedelta(hours=h)
+                for h in range(23)
+            )
+        )
 
     with pytest.raises(ValueError, match="must contain exactly 24 hourly timestamps"):
-        _make_valid_input(target_times=tuple(
-            datetime(2024, 1, 1, 0, 0, tzinfo=None) + timedelta(hours=h)
-            for h in range(25)
-        ))
+        _make_valid_input(
+            target_times=tuple(
+                datetime(2024, 1, 1, 0, 0, tzinfo=None) + timedelta(hours=h)
+                for h in range(25)
+            )
+        )
 
 
 def test_dispatch_input_rejects_non_hourly_timestamps():
     """target timestamps must be on the hour (minute==0)."""
     times = list(
-        datetime(2024, 1, 1, 0, 0, tzinfo=None) + timedelta(hours=h)
-        for h in range(24)
+        datetime(2024, 1, 1, 0, 0, tzinfo=None) + timedelta(hours=h) for h in range(24)
     )
     times[5] = datetime(2024, 1, 1, 5, 30, tzinfo=None)  # off-hour
     with pytest.raises(ValueError, match="must be on the hour"):
@@ -56,8 +58,7 @@ def test_dispatch_input_rejects_non_hourly_timestamps():
 def test_dispatch_input_rejects_non_strictly_increasing():
     """target_times must be strictly increasing (no duplicates, no reversals)."""
     times = list(
-        datetime(2024, 1, 1, 0, 0, tzinfo=None) + timedelta(hours=h)
-        for h in range(24)
+        datetime(2024, 1, 1, 0, 0, tzinfo=None) + timedelta(hours=h) for h in range(24)
     )
     times[10] = times[9]  # duplicate
     with pytest.raises(ValueError, match="must be strictly increasing"):
@@ -68,7 +69,9 @@ def test_dispatch_input_rejects_non_finite_prices():
     """price_eur_mwh must contain only finite values."""
     prices = [50.0] * 24
     prices[7] = float("nan")
-    with pytest.raises(ValueError, match="price_eur_mwh must contain only finite values"):
+    with pytest.raises(
+        ValueError, match="price_eur_mwh must contain only finite values"
+    ):
         _make_valid_input(price_eur_mwh=tuple(prices))
 
 
@@ -84,7 +87,9 @@ def test_dispatch_input_rejects_non_finite_residual_load():
     """residual_load_mw must contain only finite values."""
     loads = [100.0] * 24
     loads[3] = float("inf")
-    with pytest.raises(ValueError, match="residual_load_mw must contain only finite values"):
+    with pytest.raises(
+        ValueError, match="residual_load_mw must contain only finite values"
+    ):
         _make_valid_input(residual_load_mw=tuple(loads))
 
 
@@ -140,7 +145,9 @@ def test_dispatch_input_scenario_p50_must_match_residual():
     p90 = tuple(r * 1.1 for r in p50)
     bad_p50 = tuple(r + 1.0 for r in p50)
 
-    with pytest.raises(ValueError, match="scenario_residual_load_mw\\['p50'\\] must equal"):
+    with pytest.raises(
+        ValueError, match="scenario_residual_load_mw\\['p50'\\] must equal"
+    ):
         DispatchInput(
             issue_time=base.issue_time,
             target_times=base.target_times,

@@ -50,10 +50,10 @@ from __future__ import annotations
 import json
 import math
 import random
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Mapping, Optional, Sequence
 
 from ..forecast.benchmark import DEFAULT_LR_FEATURES
 from ..forecast.contract import build_forecasting_dataset
@@ -159,11 +159,11 @@ class ForecastProfilesResult:
 def build_forecast_profiles(
     feature_rows,
     *,
-    split: Optional[ChronologicalSplit] = None,
+    split: ChronologicalSplit | None = None,
     issue_hour_utc: int = 6,
     seed: int = 0,
-    quantile_model_kwargs: Optional[dict] = None,
-    feature_columns: Optional[Sequence[str]] = None,
+    quantile_model_kwargs: dict | None = None,
+    feature_columns: Sequence[str] | None = None,
 ) -> ForecastProfilesResult:
     """Build a per-issue-day 24-hour forecast profile over the test window.
 
@@ -312,7 +312,7 @@ def assemble_dispatch_input(
     profile: ForecastProfile,
     price_eur_mwh: Sequence[float],
     *,
-    battery: Optional[BatteryConfig] = None,
+    battery: BatteryConfig | None = None,
 ) -> DispatchInput:
     """Build a validated :class:`DispatchInput` from a complete profile.
 
@@ -395,8 +395,8 @@ def settle_day(
 # Bootstrap CI on mean daily cost difference (paired dispatch days)
 # ============================================================================
 def bootstrap_cost_difference_ci(
-    daily_a: Sequence[Optional[float]],
-    daily_b: Sequence[Optional[float]],
+    daily_a: Sequence[float | None],
+    daily_b: Sequence[float | None],
     *,
     n_boot: int = 2000,
     seed: int = 0,
@@ -453,14 +453,14 @@ def run_dispatch_backtest(
     feature_rows,
     gold_rows,
     *,
-    split: Optional[ChronologicalSplit] = None,
+    split: ChronologicalSplit | None = None,
     seed: int = 0,
-    battery: Optional[BatteryConfig] = None,
-    strategies: Optional[Sequence[str]] = None,
+    battery: BatteryConfig | None = None,
+    strategies: Sequence[str] | None = None,
     issue_hour_utc: int = 6,
-    quantile_model_kwargs: Optional[dict] = None,
+    quantile_model_kwargs: dict | None = None,
     n_boot: int = 2000,
-) -> "BacktestResult":
+) -> BacktestResult:
     """Run the full Phase 4D-B backtest over the test window.
 
     ``feature_rows`` drive the per-offset forecast profiles; ``gold_rows``
@@ -589,8 +589,8 @@ def run_dispatch_backtest(
              ("no_battery", "scenario_lp"), ("lp_p50", "scenario_lp")]
     pairs = [(a, b) for a, b in pairs if a in strat_names and b in strat_names]
     for a, b in pairs:
-        ca: list[Optional[float]] = []
-        cb: list[Optional[float]] = []
+        ca: list[float | None] = []
+        cb: list[float | None] = []
         for day in days:
             ra = day["results"][a]
             rb = day["results"][b]
@@ -661,7 +661,7 @@ def run_dispatch_backtest(
         "n_boot": n_boot,
         "gridpulse_version": _gridpulse_version(),
         "python_version": _python_version(),
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at_utc": datetime.now(UTC).isoformat(timespec="seconds"),
     }
 
     return BacktestResult(
@@ -729,35 +729,35 @@ class BacktestResult:
         }
 
     def to_markdown(self) -> str:
-        l = []
-        l.append("# Battery Dispatch Backtest (Phase 4D-B)")
-        l.append("")
-        l.append(f"**DATA STATUS = `{self.data_status}`**")
-        l.append("")
+        lines = []
+        lines.append("# Battery Dispatch Backtest (Phase 4D-B)")
+        lines.append("")
+        lines.append(f"**DATA STATUS = `{self.data_status}`**")
+        lines.append("")
         info = self.info
-        l.append(
+        lines.append(
             f"- Target: `{info['target_column']}` · horizon {info['horizon_hours']} h · "
             f"issue once daily at {info['issue_hour_utc']}:00 UTC"
         )
-        l.append(
+        lines.append(
             f"- Dispatch days evaluated: `{info['n_dispatch_days']}` "
             f"(`{info['n_profiles_complete']}` complete profiles of "
             f"`{info['n_profiles']}`; `{info['n_dropped_days']}` dropped days)")
-        l.append(f"- As-of policy: {info['asof_policy']}")
-        l.append(f"- Price convention: {info['price_availability_convention']}")
-        l.append("")
-        l.append(f"- Statement: {info['statement']}")
-        l.append("")
-        l.append("## Forecast evaluation (per target-hour offset, P10/P50/P90)")
-        l.append("")
-        l.append("| offset | n_aligned | MAE (P50) | pinball@0.5 | int.80 cov | width mean | crossing det |")
-        l.append("|---|---|---|---|---|---|---|")
+        lines.append(f"- As-of policy: {info['asof_policy']}")
+        lines.append(f"- Price convention: {info['price_availability_convention']}")
+        lines.append("")
+        lines.append(f"- Statement: {info['statement']}")
+        lines.append("")
+        lines.append("## Forecast evaluation (per target-hour offset, P10/P50/P90)")
+        lines.append("")
+        lines.append("| offset | n_aligned | MAE (P50) | pinball@0.5 | int.80 cov | width mean | crossing det |")
+        lines.append("|---|---|---|---|---|---|---|")
         for off in self.forecast_offsets:
             point = off["point_metrics_as_p50"]
             prob = off["probabilistic_metrics"]
             w = prob["interval_width"]
             x = off["crossing"]
-            l.append(
+            lines.append(
                 f"| {off['offset']} | {off['n_aligned']} | {_fmt(point['mae'])} | "
                 f"{_fmt(prob['pinball']['0.50'])} | {_fmt(prob['interval_coverage'])} | "
                 f"{_fmt(w['mean'])} | {x['n_detected']} |"
@@ -765,72 +765,72 @@ class BacktestResult:
         fs = info["forecast_summary"]
         fsp = fs.get("probabilistic_metrics") or {}
         if fsp:
-            l.append("")
-            l.append("### Aggregated probabilistic summary (all offsets)")
-            l.append("")
-            l.append(
+            lines.append("")
+            lines.append("### Aggregated probabilistic summary (all offsets)")
+            lines.append("")
+            lines.append(
                 f"- pinball P10/P50/P90: {_fmt(fsp['pinball']['0.10'])} / "
                 f"{_fmt(fsp['pinball']['0.50'])} / {_fmt(fsp['pinball']['0.90'])}"
             )
-            l.append(
+            lines.append(
                 f"- empirical coverage: {_fmt(fsp['empirical_coverage']['0.10'])} / "
                 f"{_fmt(fsp['empirical_coverage']['0.50'])} / "
                 f"{_fmt(fsp['empirical_coverage']['0.90'])} · "
                 f"80% interval coverage {_fmt(fsp['interval_coverage'])}"
             )
             rs = fsp["risk_score"]
-            l.append(
+            lines.append(
                 f"- risk score mean `{_fmt(rs['mean'])}` · median `{_fmt(rs['median'])}` · "
                 f"near-zero P50 `{rs['n_near_zero_p50']}`"
             )
-        l.append("")
-        l.append("## Dispatch evaluation (realised settlement, per strategy)")
-        l.append("")
-        l.append("| strategy | n days | mean cost (EUR) | median | savings vs no_bat (EUR) | export-undercut h | neutral Δ (MWh) |")
-        l.append("|---|---|---|---|---|---|---|")
+        lines.append("")
+        lines.append("## Dispatch evaluation (realised settlement, per strategy)")
+        lines.append("")
+        lines.append("| strategy | n days | mean cost (EUR) | median | savings vs no_bat (EUR) | export-undercut h | neutral Δ (MWh) |")
+        lines.append("|---|---|---|---|---|---|---|")
         for s in self.strategies:
-            l.append(
+            lines.append(
                 f"| {s['strategy']} | {s['n_days']} | {_fmt(s['mean_daily_cost_eur'])} | "
                 f"{_fmt(s['median_daily_cost_eur'])} | "
                 f"{_fmt(s['mean_daily_savings_vs_no_battery_eur'])} | "
                 f"{s['total_export_undercut_hours']} | "
                 f"{_fmt(s['mean_energy_neutrality_delta_mwh'])} |"
             )
-        l.append("")
-        l.append("## Pairwise cost comparisons (bootstrap CI, paired days)")
-        l.append("")
-        l.append("| A | B | mean Δ (A−B) EUR | 95% CI | n days |")
-        l.append("|---|---|---|---|---|")
+        lines.append("")
+        lines.append("## Pairwise cost comparisons (bootstrap CI, paired days)")
+        lines.append("")
+        lines.append("| A | B | mean Δ (A−B) EUR | 95% CI | n days |")
+        lines.append("|---|---|---|---|---|")
         for c in self.comparisons:
-            l.append(
+            lines.append(
                 f"| {c['A']} | {c['B']} | {_fmt(c['difference'])} | "
                 f"[{_fmt(c['ci_low'])}, {_fmt(c['ci_high'])}] | {c['n_days']} |"
             )
-        l.append("")
-        l.append(
+        lines.append("")
+        lines.append(
             f"- {self.comparisons[0]['note']}" if self.comparisons else ""
         )
-        l.append("")
+        lines.append("")
         if self.dropped_days:
-            l.append("## Dropped days")
-            l.append("")
+            lines.append("## Dropped days")
+            lines.append("")
             for ts, reason in sorted(self.dropped_days.items()):
-                l.append(f"- `{ts}`: {reason}")
-            l.append("")
-        l.append("## Split (chronological, shared by all offsets)")
-        l.append("")
-        l.append(f"- {_fmt_split(self.split)}")
-        l.append("")
-        l.append("## Reproducibility")
-        l.append("")
+                lines.append(f"- `{ts}`: {reason}")
+            lines.append("")
+        lines.append("## Split (chronological, shared by all offsets)")
+        lines.append("")
+        lines.append(f"- {_fmt_split(self.split)}")
+        lines.append("")
+        lines.append("## Reproducibility")
+        lines.append("")
         r = self.reproducibility
-        l.append(
+        lines.append(
             f"- seed `{r['seed']}`, n_boot `{r['n_boot']}`, gridpulse "
             f"`{r['gridpulse_version']}`, python `{r['python_version']}`, "
             f"generated `{r['generated_at_utc']}` UTC"
         )
-        l.append("")
-        return "\n".join(l)
+        lines.append("")
+        return "\n".join(lines)
 
     def write(self, out_dir, *, stem: str = "dispatch_backtest_phase4db") -> list:
         out_dir = Path(out_dir)
@@ -849,11 +849,11 @@ class BacktestResult:
 # ============================================================================
 # small helpers
 # ============================================================================
-def _mean(values: Sequence[float]) -> Optional[float]:
+def _mean(values: Sequence[float]) -> float | None:
     return sum(values) / len(values) if values else None
 
 
-def _median(values: Sequence[float]) -> Optional[float]:
+def _median(values: Sequence[float]) -> float | None:
     if not values:
         return None
     s = sorted(values)
@@ -864,7 +864,7 @@ def _median(values: Sequence[float]) -> Optional[float]:
     return (s[mid - 1] + s[mid]) / 2.0
 
 
-def _parse_gold_timestamp(value) -> Optional[datetime]:
+def _parse_gold_timestamp(value) -> datetime | None:
     if not value:
         return None
     try:
@@ -875,7 +875,7 @@ def _parse_gold_timestamp(value) -> Optional[datetime]:
         return None
 
 
-def _parse_gold_float(value) -> Optional[float]:
+def _parse_gold_float(value) -> float | None:
     if value is None or str(value) == "":
         return None
     try:

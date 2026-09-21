@@ -8,9 +8,9 @@ are explicitly out of scope for Phase 2.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Iterable, Mapping, Sequence
 
 from .models import TimeSeries
 

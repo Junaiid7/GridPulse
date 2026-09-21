@@ -35,9 +35,9 @@ Sign convention (documented once here, used everywhere):
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Mapping, Optional, Sequence
 
 from ..ingestion.common.models import ensure_utc
 from .battery import BatteryConfig
@@ -136,7 +136,7 @@ class DispatchInput:
     scenario_residual_load_mw: Mapping[str, Sequence[float]] = field(default_factory=dict)
     battery: BatteryConfig = field(default_factory=BatteryConfig)
     curtailment_allowed: bool = False
-    terminal_soc: Optional[float] = None
+    terminal_soc: float | None = None
 
     def __post_init__(self):
         if not isinstance(self.issue_time, datetime):
@@ -231,7 +231,7 @@ class DispatchResult:
     battery: BatteryConfig
     status: str                          # "optimal" | "ok"
     solver: str
-    message: Optional[str]
+    message: str | None
     data_status: str = "FIXTURE-VERIFIED"
 
     def to_dict(self) -> dict:

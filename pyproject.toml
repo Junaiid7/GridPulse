@@ -29,7 +29,9 @@ dependencies = ["tzdata>=2024.1", "lightgbm>=4.7.0", "scipy>=1.13"]
 [project.optional-dependencies]
 # Minimum set required to run the test suite. Broader stack (Prefect, DuckDB,
 # LightGBM, etc.) is intentionally deferred to later phases.
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "ruff>=0.2.0"]
+serving = ["fastapi>=0.110", "uvicorn>=0.25"]
+dashboard = ["streamlit>=1.30", "plotly>=5.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gridpulse"]

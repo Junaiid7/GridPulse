@@ -1,0 +1,19 @@
+line-length = 88
+target-version = "py312"
+
+[lint]
+select = [
+    "E",
+    "F",
+    "UP",
+    "I",
+]
+ignore = ["E501"]
+
+[lint.per-file-ignores]
+"scripts/*.py" = ["E402", "E501"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+exclude = ["src/**/*.py", "scripts/**/*.py"]

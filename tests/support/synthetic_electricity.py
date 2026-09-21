@@ -27,14 +27,14 @@ from __future__ import annotations
 import json
 import math
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from gridpulse.config import Settings
 from gridpulse.ingestion.common.errors import NoDataError
 from gridpulse.ingestion.common.models import FetchResult
 from gridpulse.pipeline.runner import PipelineRun, run_pipeline
 
-UTC = timezone.utc
+UTC = UTC
 DEFAULT_START = datetime(2024, 1, 15, tzinfo=UTC)
 DEFAULT_END = datetime(2024, 3, 15, tzinfo=UTC)
 
@@ -59,17 +59,43 @@ def _signals(t: datetime) -> dict:
         + 300.0 * math.sin(2 * math.pi * (h % 168) / 168 + 1.3)
     )
     solar = 0.0 if ll < 7 or ll >= 18 else 1500.0 * math.sin(math.pi * (ll - 7) / 11)
-    wind_offshore = 700.0 + 250.0 * math.sin(2 * math.pi * h / 72) + 100.0 * math.sin(2 * math.pi * ll / 24)
-    wind_onshore = 900.0 + 300.0 * math.sin(2 * math.pi * h / 96 + 0.7) + 120.0 * math.sin(2 * math.pi * ll / 48)
-    price = 38.0 + 22.0 * math.cos(2 * math.pi * (ll - 19) / 24) + 6.0 * math.sin(2 * math.pi * h / 168)
+    wind_offshore = (
+        700.0
+        + 250.0 * math.sin(2 * math.pi * h / 72)
+        + 100.0 * math.sin(2 * math.pi * ll / 24)
+    )
+    wind_onshore = (
+        900.0
+        + 300.0 * math.sin(2 * math.pi * h / 96 + 0.7)
+        + 120.0 * math.sin(2 * math.pi * ll / 48)
+    )
+    price = (
+        38.0
+        + 22.0 * math.cos(2 * math.pi * (ll - 19) / 24)
+        + 6.0 * math.sin(2 * math.pi * h / 168)
+    )
 
-    temp = 5.5 + 4.0 * math.cos(2 * math.pi * (ll - 15) / 24) + 2.0 * math.sin(2 * math.pi * h / (24 * 14))
+    temp = (
+        5.5
+        + 4.0 * math.cos(2 * math.pi * (ll - 15) / 24)
+        + 2.0 * math.sin(2 * math.pi * h / (24 * 14))
+    )
     humidity = 72.0 + 15.0 * math.cos(2 * math.pi * (ll - 5) / 24)
-    ws10 = 4.8 + 2.0 * math.sin(2 * math.pi * ll / 24) + 1.0 * math.sin(2 * math.pi * h / 72)
-    ws100 = 8.2 + 2.5 * math.sin(2 * math.pi * ll / 24) + 1.5 * math.sin(2 * math.pi * h / 96)
+    ws10 = (
+        4.8
+        + 2.0 * math.sin(2 * math.pi * ll / 24)
+        + 1.0 * math.sin(2 * math.pi * h / 72)
+    )
+    ws100 = (
+        8.2
+        + 2.5 * math.sin(2 * math.pi * ll / 24)
+        + 1.5 * math.sin(2 * math.pi * h / 96)
+    )
     wdir = 210.0 + 60.0 * math.sin(2 * math.pi * h / 96)
     shw = 0.0 if ll < 6 or ll >= 18 else 420.0 * math.sin(math.pi * (ll - 6) / 12)
-    dni = 0.0 if ll < 6 or ll >= 18 else 520.0 * math.sin(math.pi * (ll - 6) / 12) ** 1.2
+    dni = (
+        0.0 if ll < 6 or ll >= 18 else 520.0 * math.sin(math.pi * (ll - 6) / 12) ** 1.2
+    )
     dif = 0.0 if ll < 6 or ll >= 18 else 90.0 + 60.0 * math.sin(math.pi * (ll - 6) / 12)
     cloud = 45.0 + 35.0 * math.sin(2 * math.pi * (h + 2000) / 240)
     precip = max(0.0, 1.2 * math.sin(2 * math.pi * (h % 43) / 43) - 0.6)
@@ -112,14 +138,15 @@ def _points_xml(values: list[float], value_tag: str) -> str:
     return "\n          ".join(lines)
 
 
-def _time_series_block(ts_id: str, start: datetime, end: datetime,
-                       values: list[float], value_tag: str) -> str:
+def _time_series_block(
+    ts_id: str, start: datetime, end: datetime, values: list[float], value_tag: str
+) -> str:
     return (
         "    <TimeSeries>\n"
         f"      <mRID>{ts_id}</mRID>\n"
         "      <businessType>B22</businessType>\n"
         "      <curveType>A01</curveType>\n"
-        "      <outBiddingZone_Domain.mRID codingScheme=\"A01\">10YNL----------L</outBiddingZone_Domain.mRID>\n"
+        '      <outBiddingZone_Domain.mRID codingScheme="A01">10YNL----------L</outBiddingZone_Domain.mRID>\n'
         f"      <quantity_measure_unit.name>MAW</quantity_measure_unit.name>\n"
         "      <Period>\n"
         "        <timeInterval>\n"
@@ -138,6 +165,7 @@ def _load_xml(start: datetime, end: datetime, per_hour: list[dict]) -> bytes:
     body = _time_series_block("ts-load", start, end, values, "quantity")
     return _wrap_xml(body, doc_type="A65")
 
+
 def _generation_xml(start: datetime, end: datetime, per_hour: list[dict]) -> bytes:
     blocks = [
         ("ts-solar", [s["solar_mw"] for s in per_hour]),
@@ -151,7 +179,8 @@ def _generation_xml(start: datetime, end: datetime, per_hour: list[dict]) -> byt
         raw = raw.replace(
             "      <curveType>A01</curveType>\n",
             "      <curveType>A01</curveType>\n      <MktPSRType>\n        <psrType>"
-            + _PSR_FOR_TS[ts_id] + "</psrType>\n      </MktPSRType>\n",
+            + _PSR_FOR_TS[ts_id]
+            + "</psrType>\n      </MktPSRType>\n",
             1,
         )
         built.append(raw)
@@ -177,35 +206,47 @@ def _wrap_xml(body: str, *, doc_type: str) -> bytes:
         "  <process.processType>A16</process.processType>\n"
         f"{body}\n"
         "</GL_MarketDocument>"
-    ).encode("utf-8")
+    ).encode()
 
 
 # ------------------------------------------------------------------ weather
 def _weather_json(start: datetime, end: datetime, per_hour: list[dict]) -> bytes:
     variables = [
-        "temperature_2m", "relative_humidity_2m", "wind_speed_10m",
-        "wind_speed_100m", "wind_direction_100m", "shortwave_radiation",
-        "direct_normal_irradiance", "diffuse_radiation", "cloud_cover",
+        "temperature_2m",
+        "relative_humidity_2m",
+        "wind_speed_10m",
+        "wind_speed_100m",
+        "wind_direction_100m",
+        "shortwave_radiation",
+        "direct_normal_irradiance",
+        "diffuse_radiation",
+        "cloud_cover",
         "precipitation",
     ]
     units = {
-        "temperature_2m": "°C", "relative_humidity_2m": "%",
-        "wind_speed_10m": "m/s", "wind_speed_100m": "m/s",
-        "wind_direction_100m": "°", "shortwave_radiation": "W/m²",
-        "direct_normal_irradiance": "W/m²", "diffuse_radiation": "W/m²",
-        "cloud_cover": "%", "precipitation": "mm",
+        "temperature_2m": "°C",
+        "relative_humidity_2m": "%",
+        "wind_speed_10m": "m/s",
+        "wind_speed_100m": "m/s",
+        "wind_direction_100m": "°",
+        "shortwave_radiation": "W/m²",
+        "direct_normal_irradiance": "W/m²",
+        "diffuse_radiation": "W/m²",
+        "cloud_cover": "%",
+        "precipitation": "mm",
     }
     payload = {
-        "latitude": 52.21, "longitude": 5.29, "elevation": 5.0,
-        "generationtime_ms": 0.05, "utc_offset_seconds": 0, "timezone": "GMT",
+        "latitude": 52.21,
+        "longitude": 5.29,
+        "elevation": 5.0,
+        "generationtime_ms": 0.05,
+        "utc_offset_seconds": 0,
+        "timezone": "GMT",
         "timezone_abbreviation": "GMT",
         "hourly_units": {"time": "iso8601", **units},
         "hourly": {
             "time": [f"{t:%Y-%m-%dT%H:%M}" for t in _hourly_timestamps(start, end)],
-            **{
-                var: [round(s[var], 2) for s in per_hour]
-                for var in variables
-            },
+            **{var: [round(s[var], 2) for s in per_hour] for var in variables},
         },
     }
     return json.dumps(payload, ensure_ascii=True).encode("utf-8")
@@ -269,13 +310,17 @@ class SyntheticEntsoeClient:
         return [self._result("actual-total-load", self._f.payloads["load"])]
 
     def fetch_generation(self, area, start, end) -> list[FetchResult]:
-        return [self._result("actual-generation-by-type", self._f.payloads["generation"])]
+        return [
+            self._result("actual-generation-by-type", self._f.payloads["generation"])
+        ]
 
     def fetch_day_ahead_prices(self, area, start, end) -> list[FetchResult]:
         return [self._result("dayahead-prices", self._f.payloads["prices"])]
 
     def fetch_imbalance_prices(self, area, start, end) -> list[FetchResult]:
-        raise NoDataError("synthetic: NL imbalance intentionally UNAVAILABLE in fixtures")
+        raise NoDataError(
+            "synthetic: NL imbalance intentionally UNAVAILABLE in fixtures"
+        )
 
 
 class SyntheticOpenMeteoClient:
@@ -286,7 +331,9 @@ class SyntheticOpenMeteoClient:
 
     def fetch_historical(self, location, start_date, end_date) -> list[FetchResult]:
         start = datetime.combine(start_date, datetime.min.time(), tzinfo=UTC)
-        end = datetime.combine(end_date, datetime.min.time(), tzinfo=UTC) + timedelta(days=1)
+        end = datetime.combine(end_date, datetime.min.time(), tzinfo=UTC) + timedelta(
+            days=1
+        )
         return [
             FetchResult(
                 source="open-meteo",

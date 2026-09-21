@@ -9,13 +9,13 @@ DATA STATUS: FIXTURE-VERIFIED (synthetic inputs only, no real ENTSO-E data).
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from gridpulse.optimization import BatteryConfig, DispatchInput
 
 from .synthetic_electricity import build_synthetic_window
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def _ensure_utc(dt: datetime) -> datetime:

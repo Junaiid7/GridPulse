@@ -23,13 +23,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Iterable, Protocol, Set
+from typing import Protocol
 
 
 class HolidayCalendar(Protocol):
     def is_holiday(self, day: date) -> bool: ...
-    def holidays_between(self, start: date, end: date) -> Set[date]: ...
-    def as_set(self) -> Set[date]: ...
+    def holidays_between(self, start: date, end: date) -> set[date]: ...
+    def as_set(self) -> set[date]: ...
 
 
 def easter_sunday(year: int) -> date:
@@ -44,10 +44,10 @@ def easter_sunday(year: int) -> date:
     h = (19 * a + b - d - g + 15) % 30
     i = c // 4
     k = c % 4
-    l = (32 + 2 * e + 2 * i - h - k) % 7
-    m = (a + 11 * h + 22 * l) // 451
-    month = (h + l - 7 * m + 114) // 31
-    day = ((h + l - 7 * m + 114) % 31) + 1
+    leap_day = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * leap_day) // 451
+    month = (h + leap_day - 7 * m + 114) // 31
+    day = ((h + leap_day - 7 * m + 114) % 31) + 1
     return date(year, month, day)
 
 
@@ -61,8 +61,8 @@ class CsvHolidayCalendar:
 
     path: Path
 
-    def _load(self) -> Set[date]:
-        days: Set[date] = set()
+    def _load(self) -> set[date]:
+        days: set[date] = set()
         with self.path.open("r", encoding="utf-8") as fh:
             for raw in fh:
                 line = raw.strip()
@@ -78,10 +78,10 @@ class CsvHolidayCalendar:
     def is_holiday(self, day: date) -> bool:
         return day in self._load()
 
-    def holidays_between(self, start: date, end: date) -> Set[date]:
+    def holidays_between(self, start: date, end: date) -> set[date]:
         return {d for d in self._load() if start <= d <= end}
 
-    def as_set(self) -> Set[date]:
+    def as_set(self) -> set[date]:
         return self._load()
 
 
@@ -96,10 +96,10 @@ class NetherlandsHolidayCalendar:
 
     start_year: int = 2000
     end_year: int = 2050
-    _cached_years: Set[int] = field(default_factory=set, init=False, repr=False)
-    _by_year: dict[int, Set[date]] = field(default_factory=dict, init=False, repr=False)
+    _cached_years: set[int] = field(default_factory=set, init=False, repr=False)
+    _by_year: dict[int, set[date]] = field(default_factory=dict, init=False, repr=False)
 
-    def _holidays_for(self, year: int) -> Set[date]:
+    def _holidays_for(self, year: int) -> set[date]:
         """Compute the public holidays of one year (cached per year)."""
         if year < self.start_year or year > self.end_year:
             return set()
@@ -127,13 +127,13 @@ class NetherlandsHolidayCalendar:
         object.__setattr__(self, "_cached_years", self._cached_years | {year})
         return days
 
-    def as_set(self) -> Set[date]:
+    def as_set(self) -> set[date]:
         return {d for y in range(self.start_year, self.end_year + 1) for d in self._holidays_for(y)}
 
     def is_holiday(self, day: date) -> bool:
         return day in self._holidays_for(day.year)
 
-    def holidays_between(self, start: date, end: date) -> Set[date]:
+    def holidays_between(self, start: date, end: date) -> set[date]:
         return {d for y in range(start.year, end.year + 1) for d in self._holidays_for(y) if start <= d <= end}
 
 

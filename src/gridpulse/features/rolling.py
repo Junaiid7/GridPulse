@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import statistics
 from datetime import datetime, timedelta
-from typing import Optional
 
 from .asof import History, history_before
 
@@ -22,13 +21,13 @@ def rolling_values(history: History, as_of: datetime, window_hours: int) -> list
     return [p.value for p in history_before(history, as_of) if p.timestamp_utc >= lo]
 
 
-def rolling_mean(history: History, as_of: datetime, window_hours: int) -> Optional[float]:
+def rolling_mean(history: History, as_of: datetime, window_hours: int) -> float | None:
     """Mean of the trailing ``window_hours`` values, or ``None`` if empty."""
     values = rolling_values(history, as_of, window_hours)
     return sum(values) / len(values) if values else None
 
 
-def rolling_std(history: History, as_of: datetime, window_hours: int) -> Optional[float]:
+def rolling_std(history: History, as_of: datetime, window_hours: int) -> float | None:
     """Sample standard deviation of the trailing window (ddof=1), or ``None``."""
     values = rolling_values(history, as_of, window_hours)
     if len(values) < 2:

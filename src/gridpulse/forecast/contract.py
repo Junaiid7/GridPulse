@@ -37,9 +37,9 @@ it trusts the issue-row contract and verifies it in tests (see
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Mapping, Optional, Sequence
 
 from ..ingestion.common.models import ensure_utc
 
@@ -109,8 +109,8 @@ class ForecastRow:
     issue_time: datetime
     target_time: datetime
     features: Mapping[str, object] = field(default_factory=dict)
-    target_mw: Optional[float] = None
-    naive_vintage_mw: Optional[float] = None
+    target_mw: float | None = None
+    naive_vintage_mw: float | None = None
     n_incomplete: int = 0
 
     def has_features(self) -> bool:
@@ -136,7 +136,7 @@ def build_forecasting_dataset(
     *,
     issue_hour_utc: int = 6,
     horizon_hours: int = 24,
-    naive_lag_hours: Optional[int] = None,
+    naive_lag_hours: int | None = None,
 ) -> ForecastingDataset:
     """Build a forecasting dataset from pipeline feature rows.
 

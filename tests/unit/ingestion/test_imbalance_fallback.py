@@ -7,7 +7,7 @@ separated synthetic fallback is deliberately not implemented and raises.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -15,17 +15,25 @@ from gridpulse.ingestion.common.errors import ConfigurationError
 from gridpulse.ingestion.common.http import HttpResponse
 from gridpulse.ingestion.entsoe.client import EntsoeClient
 from gridpulse.ingestion.entsoe.domains import NL
-from gridpulse.ingestion.entsoe.imbalance import EntsoeImbalancePrices, ImbalancePricesSource
-from gridpulse.ingestion.fallback.imbalance import ImbalancePenaltyProvider, SyntheticImbalancePenalty
+from gridpulse.ingestion.entsoe.imbalance import (
+    EntsoeImbalancePrices,
+    ImbalancePricesSource,
+)
+from gridpulse.ingestion.fallback.imbalance import (
+    ImbalancePenaltyProvider,
+    SyntheticImbalancePenalty,
+)
 
-UTC = timezone.utc
+UTC = UTC
 START = datetime(2024, 1, 1, tzinfo=UTC)
 END = datetime(2024, 1, 2, tzinfo=UTC)
 
 
 class FakeHttp:
     def get(self, url, *, params=None, headers=None):
-        return HttpResponse(200, {"content-type": "application/zip"}, b"PK", "http://fake")
+        return HttpResponse(
+            200, {"content-type": "application/zip"}, b"PK", "http://fake"
+        )
 
 
 def test_synthetic_fallback_is_explicitly_not_implemented() -> None:

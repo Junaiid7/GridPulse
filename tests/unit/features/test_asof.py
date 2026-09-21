@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
 from gridpulse.features.asof import HistoryPoint, history_before
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def _dt(s: str) -> datetime:

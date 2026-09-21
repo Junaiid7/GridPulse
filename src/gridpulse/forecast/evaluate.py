@@ -11,14 +11,14 @@ from __future__ import annotations
 
 import math
 import random
-from typing import Mapping, Optional, Sequence
+from collections.abc import Sequence
 
 from .probabilistic import NOMINAL_INTERVAL_COVERAGE
 
 
 def compute_point_metrics(
-    actuals: Sequence[Optional[float]],
-    predictions: Sequence[Optional[float]],
+    actuals: Sequence[float | None],
+    predictions: Sequence[float | None],
     *,
     mape_min_abs: float = 1e-3,
 ) -> dict:
@@ -96,8 +96,8 @@ def compute_point_metrics(
 
 
 def bootstrap_mae_ci(
-    actuals: Sequence[Optional[float]],
-    predictions: Sequence[Optional[float]],
+    actuals: Sequence[float | None],
+    predictions: Sequence[float | None],
     *,
     n_boot: int = 2000,
     seed: int = 0,
@@ -132,9 +132,9 @@ def bootstrap_mae_ci(
 
 
 def bootstrap_mae_difference_ci(
-    actuals: Sequence[Optional[float]],
-    pred_a: Sequence[Optional[float]],
-    pred_b: Sequence[Optional[float]],
+    actuals: Sequence[float | None],
+    pred_a: Sequence[float | None],
+    pred_b: Sequence[float | None],
     *,
     n_boot: int = 2000,
     seed: int = 0,
@@ -184,10 +184,10 @@ def bootstrap_mae_difference_ci(
 
 
 def pinball_loss(
-    actuals: Sequence[Optional[float]],
-    quantile_preds: Sequence[Optional[float]],
+    actuals: Sequence[float | None],
+    quantile_preds: Sequence[float | None],
     alpha: float,
-) -> Optional[float]:
+) -> float | None:
     """Mean pinball loss at quantile ``alpha``.
 
     Per-sample pinball: ``(y - q) * alpha`` when ``y >= q`` and
@@ -215,9 +215,9 @@ def pinball_loss(
 
 
 def empirical_coverage(
-    actuals: Sequence[Optional[float]],
-    quantile_preds: Sequence[Optional[float]],
-) -> Optional[float]:
+    actuals: Sequence[float | None],
+    quantile_preds: Sequence[float | None],
+) -> float | None:
     """Fraction of actuals at or below the predicted quantile.
 
     For a well-calibrated quantile ``alpha`` this fraction ≈ ``alpha`` (so
@@ -235,10 +235,10 @@ def empirical_coverage(
 
 
 def interval_coverage(
-    actuals: Sequence[Optional[float]],
-    lo: Sequence[Optional[float]],
-    hi: Sequence[Optional[float]],
-) -> Optional[float]:
+    actuals: Sequence[float | None],
+    lo: Sequence[float | None],
+    hi: Sequence[float | None],
+) -> float | None:
     """Fraction of actuals inside the predictive interval ``[lo, hi]``.
 
     For the nominal 80% interval ``[P10, P90]`` this should be ≈ 0.80 when
@@ -248,11 +248,11 @@ def interval_coverage(
         raise ValueError("actuals, lo and hi must have the same length")
     inside = 0
     n = 0
-    for a, l, h in zip(actuals, lo, hi):
-        if a is None or l is None or h is None:
+    for a, lower, h in zip(actuals, lo, hi):
+        if a is None or lower is None or h is None:
             continue
         n += 1
-        if l <= float(a) <= h:
+        if lower <= float(a) <= h:
             inside += 1
     if n == 0:
         return None
@@ -260,8 +260,8 @@ def interval_coverage(
 
 
 def interval_width_stats(
-    lo: Sequence[Optional[float]],
-    hi: Sequence[Optional[float]],
+    lo: Sequence[float | None],
+    hi: Sequence[float | None],
 ) -> dict:
     """Distribution of interval widths ``hi - lo`` (sharpness).
 
@@ -269,9 +269,9 @@ def interval_width_stats(
     ``n`` valid widths. All ``None`` (``max=None`` etc.) when no valid widths.
     """
     widths = [
-        float(h) - float(l)
-        for l, h in zip(lo, hi)
-        if l is not None and h is not None
+        float(h) - float(lower)
+        for lower, h in zip(lo, hi)
+        if lower is not None and h is not None
     ]
     empty = {"mean": None, "median": None, "min": None, "max": None, "std": None, "n": 0}
     if not widths:
@@ -324,10 +324,10 @@ def _risk_score_stats(p10s, p50s, p90s) -> dict:
 
 
 def probabilistic_metrics(
-    actuals: Sequence[Optional[float]],
-    p10s: Sequence[Optional[float]],
-    p50s: Sequence[Optional[float]],
-    p90s: Sequence[Optional[float]],
+    actuals: Sequence[float | None],
+    p10s: Sequence[float | None],
+    p50s: Sequence[float | None],
+    p90s: Sequence[float | None],
 ) -> dict:
     """Aggregate probabilistic evaluation of P10/P50/P90 predictions.
 

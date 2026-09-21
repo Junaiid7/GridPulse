@@ -53,7 +53,10 @@ def test_empirical_coverage_basic():
     assert empirical_coverage(actuals, [10.0] * 5) == pytest.approx(0.20)
     # q=13 counts actuals <= 13 -> 4/5 = 0.80
     assert empirical_coverage(actuals, [13.0] * 5) == pytest.approx(0.80)
-    assert empirical_coverage([1.0, None], [2.0, 2.0], ) == pytest.approx(1.0)
+    assert empirical_coverage(
+        [1.0, None],
+        [2.0, 2.0],
+    ) == pytest.approx(1.0)
     assert empirical_coverage([None, None], [1.0, 1.0]) is None
 
 
@@ -87,9 +90,9 @@ def test_interval_width_stats_empty_and_even():
 
 def test_probabilistic_metrics_aggregate():
     actuals = [10.0, 20.0, 30.0, 40.0, 50.0]
-    p10 = [9.0, 19.0, 29.0, 39.0, 49.0]     # always below -> cov 0
-    p50 = [10.0, 20.0, 30.0, 40.0, 50.0]     # at/equal -> cov 1.0
-    p90 = [95.0, 95.0, 95.0, 95.0, 95.0]     # always above -> cov 1.0
+    p10 = [9.0, 19.0, 29.0, 39.0, 49.0]  # always below -> cov 0
+    p50 = [10.0, 20.0, 30.0, 40.0, 50.0]  # at/equal -> cov 1.0
+    p90 = [95.0, 95.0, 95.0, 95.0, 95.0]  # always above -> cov 1.0
     m = probabilistic_metrics(actuals, p10, p50, p90)
     assert m["n_triples"] == 5
     assert m["empirical_coverage"]["0.10"] == pytest.approx(0.0)
@@ -110,10 +113,10 @@ def test_probabilistic_metrics_skips_any_missing_triple():
     m = probabilistic_metrics(actuals, p10, p50, p90)
     # Only row 0 fully valid: a=10, lo=9, mid=10.5, hi=90.
     assert m["n_triples"] == 1
-    assert m["empirical_coverage"]["0.10"] == pytest.approx(0.0)   # 10 <= 9? no
-    assert m["empirical_coverage"]["0.50"] == pytest.approx(1.0)   # 10 <= 10.5? yes
-    assert m["empirical_coverage"]["0.90"] == pytest.approx(1.0)   # 10 <= 90? yes
-    assert m["interval_coverage"] == pytest.approx(1.0)            # 9<=10<=90
+    assert m["empirical_coverage"]["0.10"] == pytest.approx(0.0)  # 10 <= 9? no
+    assert m["empirical_coverage"]["0.50"] == pytest.approx(1.0)  # 10 <= 10.5? yes
+    assert m["empirical_coverage"]["0.90"] == pytest.approx(1.0)  # 10 <= 90? yes
+    assert m["interval_coverage"] == pytest.approx(1.0)  # 9<=10<=90
 
 
 def test_probabilistic_metrics_all_missing_returns_empty_keys():
@@ -134,7 +137,7 @@ def test_probabilistic_metrics_length_mismatch_rejected():
 def test_probabilistic_metrics_risk_score_and_near_zero():
     actuals = [10.0, 20.0]
     p10 = [9.0, 0.0]
-    p50 = [10.0, 0.0]   # second P50 near zero -> excluded from score
+    p50 = [10.0, 0.0]  # second P50 near zero -> excluded from score
     p90 = [11.0, 0.0]
     m = probabilistic_metrics(actuals, p10, p50, p90)
     rs = m["risk_score"]

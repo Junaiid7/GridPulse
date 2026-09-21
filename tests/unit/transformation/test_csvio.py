@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from gridpulse.transformation.csvio import read_table, write_table
 from gridpulse.transformation.provenance import Provenance
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def test_write_table_creates_file_with_header(tmp_path: Path) -> None:

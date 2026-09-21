@@ -6,20 +6,24 @@ request -> parse -> validate -> Bronze write end to end.
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from gridpulse.ingestion.common.http import HttpResponse
-from gridpulse.ingestion.common.validation import aggregate, validate_required_fields, validate_timestamps
+from gridpulse.ingestion.common.storage import write_bronze
+from gridpulse.ingestion.common.validation import (
+    aggregate,
+    validate_required_fields,
+    validate_timestamps,
+)
 from gridpulse.ingestion.entsoe.client import EntsoeClient
 from gridpulse.ingestion.entsoe.domains import NL
-from gridpulse.ingestion.entsoe.parser import parse_load, parse_day_ahead_prices
-from gridpulse.ingestion.common.storage import write_bronze
+from gridpulse.ingestion.entsoe.parser import parse_day_ahead_prices, parse_load
 from gridpulse.ingestion.weather.open_meteo import OpenMeteoClient
 from gridpulse.ingestion.weather.parser import parse_historical_json
 from gridpulse.ingestion.weather.variables import Location
 
-UTC = timezone.utc
+UTC = UTC
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
@@ -53,7 +57,12 @@ def test_entsoe_load_fixture_full_pipeline(tmp_path: Path) -> None:
     assert series.resolution_minutes == 15
     assert series.unit == "MW"
 
-    report = aggregate([validate_timestamps(series), validate_required_fields(series.metadata, ["outBiddingZone_Domain.mRID"])])
+    report = aggregate(
+        [
+            validate_timestamps(series),
+            validate_required_fields(series.metadata, ["outBiddingZone_Domain.mRID"]),
+        ]
+    )
     assert report.ok
 
     write = write_bronze(tmp_path / "bronze", results[0], validation=report)
@@ -69,7 +78,9 @@ def test_entsoe_prices_fixture_pipeline(tmp_path: Path) -> None:
     http = FixtureHttp({"https://web-api.tp.entsoe.eu/api": xml_payload})
     client = EntsoeClient(api_key="fixture-key", http=http)
 
-    results = client.fetch_day_ahead_prices(NL, datetime(2024, 1, 1, tzinfo=UTC), datetime(2024, 1, 1, 4, 0, tzinfo=UTC))
+    results = client.fetch_day_ahead_prices(
+        NL, datetime(2024, 1, 1, tzinfo=UTC), datetime(2024, 1, 1, 4, 0, tzinfo=UTC)
+    )
     series = parse_day_ahead_prices(results[0].payload)
     assert series.unit == "EUR/MWh"
     assert [p.value for p in series.points] == [45.20, 48.70, 55.05, 39.80]

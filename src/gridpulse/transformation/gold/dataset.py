@@ -13,17 +13,24 @@ not invent a grid: it reports every union hour present in any input.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 from zoneinfo import ZoneInfo
 
 from ...ingestion.common.models import ensure_utc
-from ..csvio import write_table, read_table
+from ..csvio import read_table, write_table
 from ..provenance import Provenance
 from ..schema import GOLD_COLUMNS, column_names
-from .residual_load import PSR_LABELS, SOLAR_PSR, WIND_PSR, category_hourly, compute_residual
+from .residual_load import (
+    PSR_LABELS,
+    SOLAR_PSR,
+    WIND_PSR,
+    category_hourly,
+    compute_residual,
+)
 
 _GOLD_HEADER = column_names(GOLD_COLUMNS)
 _NL_TZ = ZoneInfo("Europe/Amsterdam")

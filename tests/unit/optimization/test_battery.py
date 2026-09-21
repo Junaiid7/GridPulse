@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from gridpulse.optimization import BatteryConfig, BatteryModel, ETA_TOL
+from gridpulse.optimization import BatteryConfig, BatteryModel
 
 
 def test_battery_config_defaults():
@@ -34,7 +34,9 @@ def test_battery_config_efficiency_product_validation():
     assert bat.charge_efficiency * bat.discharge_efficiency == pytest.approx(0.90)
 
     # Invalid: product does not match.
-    with pytest.raises(ValueError, match="charge_efficiency \\* discharge_efficiency must equal"):
+    with pytest.raises(
+        ValueError, match="charge_efficiency \\* discharge_efficiency must equal"
+    ):
         BatteryConfig(
             round_trip_efficiency=0.90,
             charge_efficiency=0.95,
@@ -123,5 +125,7 @@ def test_battery_model_state_vector_length_mismatch():
     """state_vector raises ValueError on charge/discharge length mismatch."""
     bat = BatteryConfig()
     model = BatteryModel(bat)
-    with pytest.raises(ValueError, match="charge and discharge vectors must be the same length"):
+    with pytest.raises(
+        ValueError, match="charge and discharge vectors must be the same length"
+    ):
         model.state_vector([10.0, 5.0], [3.0])

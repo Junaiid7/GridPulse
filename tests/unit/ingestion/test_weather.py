@@ -6,7 +6,7 @@ No live network.
 from __future__ import annotations
 
 import json
-from datetime import date, timezone
+from datetime import UTC, date
 
 import pytest
 
@@ -16,7 +16,7 @@ from gridpulse.ingestion.weather.open_meteo import OpenMeteoClient
 from gridpulse.ingestion.weather.parser import parse_historical_json
 from gridpulse.ingestion.weather.variables import Location
 
-UTC = timezone.utc
+UTC = UTC
 
 SAMPLE = {
     "latitude": 52.21,
@@ -48,14 +48,19 @@ class FakeWeatherHttp:
 
     def get(self, url, *, params=None, headers=None):
         self.calls.append({"url": url, "params": dict(params or {})})
-        return HttpResponse(200, {"content-type": "application/json"}, self.body, "http://fake")
+        return HttpResponse(
+            200, {"content-type": "application/json"}, self.body, "http://fake"
+        )
 
 
 def test_fetch_historical_builds_expected_params() -> None:
     fake = FakeWeatherHttp(json.dumps(SAMPLE))
     client = OpenMeteoClient(http=fake)
     results = client.fetch_historical(
-        CENTRAL, date(2024, 1, 1), date(2024, 1, 1), variables=("temperature_2m", "wind_speed_100m")
+        CENTRAL,
+        date(2024, 1, 1),
+        date(2024, 1, 1),
+        variables=("temperature_2m", "wind_speed_100m"),
     )
 
     params = fake.calls[0]["params"]
@@ -81,8 +86,14 @@ def test_fetch_historical_chunk_days_splits_windows() -> None:
     client = OpenMeteoClient(http=fake)
     client.fetch_historical(CENTRAL, date(2024, 1, 1), date(2024, 1, 3), chunk_days=2)
     assert len(fake.calls) == 2
-    assert (fake.calls[0]["params"]["start_date"], fake.calls[0]["params"]["end_date"]) == ("2024-01-01", "2024-01-02")
-    assert (fake.calls[1]["params"]["start_date"], fake.calls[1]["params"]["end_date"]) == ("2024-01-03", "2024-01-03")
+    assert (
+        fake.calls[0]["params"]["start_date"],
+        fake.calls[0]["params"]["end_date"],
+    ) == ("2024-01-01", "2024-01-02")
+    assert (
+        fake.calls[1]["params"]["start_date"],
+        fake.calls[1]["params"]["end_date"],
+    ) == ("2024-01-03", "2024-01-03")
 
 
 def test_fetch_historical_rejects_inverted_range() -> None:

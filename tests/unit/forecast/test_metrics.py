@@ -20,20 +20,20 @@ def test_metric_values_are_exact():
     m = compute_point_metrics(actuals, preds)
     assert m["n_predictions"] == 3
     assert m["n_valid_pairs"] == 3
-    assert m["mae"] == pytest.approx(5 / 3)          # (2+0+3)/3
+    assert m["mae"] == pytest.approx(5 / 3)  # (2+0+3)/3
     assert m["rmse"] == pytest.approx(math.sqrt(13 / 3))  # (4+0+9)/3
-    assert m["bias"] == pytest.approx(-1 / 3)        # (2+0-3)/3
+    assert m["bias"] == pytest.approx(-1 / 3)  # (2+0-3)/3
     assert m["median_absolute_error"] == pytest.approx(2.0)  # sorted [0,2,3]
-    assert m["mape"] == pytest.approx(10.0)          # (0.2+0+0.1)/3*100
+    assert m["mape"] == pytest.approx(10.0)  # (0.2+0+0.1)/3*100
 
 
 def test_mape_guards_near_zero_actual():
     actuals = [0.0, 5.0]
     preds = [1.0, 5.0]
     m = compute_point_metrics(actuals, preds)
-    assert m["mape"] == pytest.approx(0.0)      # only the 5.0 row is valid
+    assert m["mape"] == pytest.approx(0.0)  # only the 5.0 row is valid
     assert m["mape_invalid_count"] == 1
-    assert m["mae"] == pytest.approx(0.5)       # |0-1|,|5-5|
+    assert m["mae"] == pytest.approx(0.5)  # |0-1|,|5-5|
 
     # ALL actuals near zero -> mape is None (never misleading), count recorded.
     m2 = compute_point_metrics([0.0, 0.0], [1.0, 2.0])
@@ -45,7 +45,9 @@ def test_mape_guards_near_zero_actual():
 def test_empty_input():
     m = compute_point_metrics([], [])
     assert m["n_predictions"] == 0
-    assert all(m[k] is None for k in ("mae", "rmse", "mape", "bias", "median_absolute_error"))
+    assert all(
+        m[k] is None for k in ("mae", "rmse", "mape", "bias", "median_absolute_error")
+    )
 
 
 def test_none_entries_are_skipped_not_errors():
@@ -75,9 +77,9 @@ def test_bootstrap_ci_is_seed_deterministic():
 def test_difference_ci_sign_and_consistency():
     actuals = [10.0, 20.0, 30.0, 40.0, 50.0]
     pred_a = [16.0, 26.0, 36.0, 46.0, 56.0]  # systematically worse
-    pred_b = [10.5, 19.5, 30.5, 39.5, 50.5]   # near-perfect
+    pred_b = [10.5, 19.5, 30.5, 39.5, 50.5]  # near-perfect
     d = bootstrap_mae_difference_ci(actuals, pred_a, pred_b, n_boot=500, seed=0)
-    assert d["difference"] > 0       # A worse than B
+    assert d["difference"] > 0  # A worse than B
     assert d["mae_a"] > d["mae_b"]
     assert d["ci_low"] <= d["ci_high"]
     # Determinism:

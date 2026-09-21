@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from gridpulse.features.calendar import calendar_features
 from gridpulse.features.holiday import NetherlandsHolidayCalendar
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def test_winter_hour_and_day_of_week() -> None:

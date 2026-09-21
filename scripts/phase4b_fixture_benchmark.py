@@ -25,7 +25,11 @@ for _p in (str(REPO_ROOT), str(REPO_ROOT / "tests")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from support.synthetic_electricity import features_rows, run_synthetic_pipeline  # noqa: E402
+from support.synthetic_electricity import (  # noqa: E402
+    features_rows,
+    run_synthetic_pipeline,
+)
+
 from gridpulse.forecast.benchmark import run_benchmark  # noqa: E402
 
 SEED = 0

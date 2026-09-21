@@ -3,17 +3,19 @@ train-only standardisation, insufficient rows, save/load."""
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from gridpulse.forecast.contract import build_forecasting_dataset
 from gridpulse.forecast.models import LinearRegressionModel
 
-UTC = timezone.utc
+UTC = UTC
 
 
-def _linear_rows(n: int, *, start: datetime = datetime(2024, 1, 1, 6, 0, tzinfo=UTC)) -> list[dict]:
+def _linear_rows(
+    n: int, *, start: datetime = datetime(2024, 1, 1, 6, 0, tzinfo=UTC)
+) -> list[dict]:
     rows = []
     for i in range(n):
         t = start + timedelta(hours=24 * i)
@@ -75,7 +77,10 @@ def test_train_only_standardisation_is_deterministic():
     m2 = LinearRegressionModel(feature_columns=["x_feat"])
     m2.fit(ds, start=lo, end=mid)
     assert m1.metadata()["beta_coefficients"] == m2.metadata()["beta_coefficients"]
-    assert m1.metadata()["predictor_center_train_only"] == m2.metadata()["predictor_center_train_only"]
+    assert (
+        m1.metadata()["predictor_center_train_only"]
+        == m2.metadata()["predictor_center_train_only"]
+    )
 
 
 def test_too_few_rows_means_unfitted_and_all_none():
@@ -106,7 +111,9 @@ def test_save_load_round_trip(tmp_path):
     assert loaded.feature_columns() == model.feature_columns()
     assert loaded.metadata()["ridge"] == pytest.approx(1e-8)
     assert loaded.metadata()["fitted"] == model.metadata()["fitted"]
-    assert loaded.metadata()["beta_coefficients"] == pytest.approx(model.metadata()["beta_coefficients"])
+    assert loaded.metadata()["beta_coefficients"] == pytest.approx(
+        model.metadata()["beta_coefficients"]
+    )
 
     # Loaded model predicts identically.
     hi = ds.rows[-1].issue_time + timedelta(hours=1)

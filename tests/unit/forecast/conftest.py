@@ -8,7 +8,6 @@ one feature table rather than re-running the pipeline per test/module.
 from __future__ import annotations
 
 import pytest
-
 from support.synthetic_electricity import features_rows, run_synthetic_pipeline
 
 

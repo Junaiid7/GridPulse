@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import io
 import zipfile
-from datetime import timezone
+from datetime import UTC
 
 import pytest
 
@@ -24,7 +24,7 @@ from gridpulse.ingestion.entsoe.parser import (
     parse_load,
 )
 
-UTC = timezone.utc
+UTC = UTC
 
 LOAD_XML = b"""<GL_MarketDocument>
   <TimeSeries>

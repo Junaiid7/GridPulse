@@ -15,7 +15,7 @@ Verification level ladder (documented in the DQ report):
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest import mock
 
@@ -24,7 +24,7 @@ from gridpulse.ingestion.common.models import FetchResult
 from gridpulse.ingestion.weather.variables import NL_POINTS
 from gridpulse.pipeline.runner import DatasetResult, PipelineRun, run_pipeline
 
-UTC = timezone.utc
+UTC = UTC
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
@@ -93,7 +93,8 @@ class FixtureOpenMeteoClient:
                 source="open-meteo",
                 entity="historical-weather",
                 start=datetime.combine(start_date, datetime.min.time(), tzinfo=UTC),
-                end=datetime.combine(end_date, datetime.min.time(), tzinfo=UTC) + timedelta(days=1),
+                end=datetime.combine(end_date, datetime.min.time(), tzinfo=UTC)
+                + timedelta(days=1),
                 retrieved_at=datetime(2024, 1, 2, 12, 0, tzinfo=UTC),
                 payload=self._payload,
                 content_type="application/json",
@@ -195,7 +196,9 @@ def test_gold_residual_matches_definition(tmp_path: Path) -> None:
     from gridpulse.transformation.csvio import read_table
 
     gold_rows = read_table(Path(run.gold.csv_path))
-    hour00 = next(r for r in gold_rows if r["timestamp_utc"].startswith("2024-01-01T00:00"))
+    hour00 = next(
+        r for r in gold_rows if r["timestamp_utc"].startswith("2024-01-01T00:00")
+    )
     # load = mean(4510,4561,4612,4689); wind = 1000+500; solar = 0
     expected = (4510 + 4561 + 4612 + 4689) / 4 - 1500.0
     assert abs(float(hour00["residual_load_mw"]) - expected) < 1e-9
@@ -213,7 +216,10 @@ def test_no_entsoe_run_still_writes_weather_and_report(tmp_path: Path) -> None:
     assert all(n == "ENTSOE_API_KEY not configured" for n in core_notes)
 
     # Imbalance explicitly UNVERIFIED, never fabricated.
-    assert run.imbalance_note == "UNVERIFIED — cannot construct EntsoeClient: ENTSOE_API_KEY not configured"
+    assert (
+        run.imbalance_note
+        == "UNVERIFIED — cannot construct EntsoeClient: ENTSOE_API_KEY not configured"
+    )
 
     # Weather still ingested and aggregated.
     assert any(d.status == "verified_live" for d in run.datasets)
@@ -234,9 +240,17 @@ def test_no_entsoe_run_still_writes_weather_and_report(tmp_path: Path) -> None:
 def _fake_run(tmp_path: Path, *, entsoe_verified: bool) -> PipelineRun:
     datasets = []
     if entsoe_verified:
-        datasets.append(DatasetResult(source="entsoe", entity="actual-total-load", status="verified_live"))
+        datasets.append(
+            DatasetResult(
+                source="entsoe", entity="actual-total-load", status="verified_live"
+            )
+        )
     else:
-        datasets.append(DatasetResult(source="entsoe", entity="actual-total-load", status="unavailable"))
+        datasets.append(
+            DatasetResult(
+                source="entsoe", entity="actual-total-load", status="unavailable"
+            )
+        )
     return PipelineRun(
         settings=_settings(tmp_path),
         requested_start=START,
@@ -252,13 +266,28 @@ def test_cli_exit_codes_are_offline(tmp_path: Path) -> None:
     from gridpulse.pipeline.__main__ import main
 
     # Default (no ENTSO-E configured) + --require-entsoe -> exit 2
-    with mock.patch("gridpulse.pipeline.runner.run_pipeline", return_value=_fake_run(tmp_path, entsoe_verified=False)):
-        assert main(["--start", "2024-01-01", "--end", "2024-01-02", "--require-entsoe"]) == 2
+    with mock.patch(
+        "gridpulse.pipeline.runner.run_pipeline",
+        return_value=_fake_run(tmp_path, entsoe_verified=False),
+    ):
+        assert (
+            main(["--start", "2024-01-01", "--end", "2024-01-02", "--require-entsoe"])
+            == 2
+        )
 
     # ENTSO-E present -> runs cleanly, exit 0
-    with mock.patch("gridpulse.pipeline.runner.run_pipeline", return_value=_fake_run(tmp_path, entsoe_verified=True)):
+    with mock.patch(
+        "gridpulse.pipeline.runner.run_pipeline",
+        return_value=_fake_run(tmp_path, entsoe_verified=True),
+    ):
         assert main(["--start", "2024-01-01", "--end", "2024-01-02"]) == 0
 
     # --require-gold unmet -> exit 3
-    with mock.patch("gridpulse.pipeline.runner.run_pipeline", return_value=_fake_run(tmp_path, entsoe_verified=True)):
-        assert main(["--start", "2024-01-01", "--end", "2024-01-02", "--require-gold"]) == 3
+    with mock.patch(
+        "gridpulse.pipeline.runner.run_pipeline",
+        return_value=_fake_run(tmp_path, entsoe_verified=True),
+    ):
+        assert (
+            main(["--start", "2024-01-01", "--end", "2024-01-02", "--require-gold"])
+            == 3
+        )

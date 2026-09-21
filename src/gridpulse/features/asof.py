@@ -13,9 +13,9 @@ are derived from the calendar alone and use no data.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Iterable, Union
+from datetime import datetime
 
 from ..ingestion.common.models import ensure_utc
 
@@ -28,7 +28,7 @@ class HistoryPoint:
     value: float
 
 
-History = Iterable[Union[HistoryPoint, tuple]]  # accepts (dt, value) pairs too
+History = Iterable[HistoryPoint | tuple]  # accepts (dt, value) pairs too
 
 
 def history_before(history: History, as_of: datetime) -> list[HistoryPoint]:

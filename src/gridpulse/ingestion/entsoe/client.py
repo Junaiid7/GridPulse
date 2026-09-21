@@ -16,10 +16,14 @@ Bronze tier. The client:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
-from ..common.errors import ConfigurationError, HttpError, QueryTooLargeError, RateLimitError
+from ..common.errors import (
+    ConfigurationError,
+    HttpError,
+    QueryTooLargeError,
+    RateLimitError,
+)
 from ..common.http import HttpClient, mask_url
 from ..common.models import FetchResult, TimeRange, chunk_range, ensure_utc
 from .domains import Area
@@ -53,8 +57,8 @@ class EntsoeClient:
         self,
         api_key: str,
         *,
-        http: Optional[HttpClient] = None,
-        logger: Optional[logging.Logger] = None,
+        http: HttpClient | None = None,
+        logger: logging.Logger | None = None,
     ) -> None:
         if not api_key or not str(api_key).strip():
             raise ConfigurationError(
@@ -96,7 +100,7 @@ class EntsoeClient:
         start: datetime,
         end: datetime,
         *,
-        psr_type: Optional[str] = None,
+        psr_type: str | None = None,
     ) -> list[FetchResult]:
         """Realised generation by production type (documentType A75), MW."""
         identifiers = (f"psr:{psr_type}",) if psr_type else ()
@@ -177,7 +181,7 @@ class EntsoeClient:
         start: datetime,
         end: datetime,
         span,
-        units: Optional[str],
+        units: str | None,
         identifiers: tuple[str, ...] = (),
     ) -> list[FetchResult]:
         rng = TimeRange(ensure_utc(start), ensure_utc(end))
@@ -195,7 +199,7 @@ class EntsoeClient:
         area: Area,
         entity: str,
         rng: TimeRange,
-        units: Optional[str],
+        units: str | None,
         identifiers: tuple[str, ...],
         depth: int,
     ) -> list[FetchResult]:
@@ -216,7 +220,7 @@ class EntsoeClient:
         area: Area,
         entity: str,
         rng: TimeRange,
-        units: Optional[str],
+        units: str | None,
         identifiers: tuple[str, ...],
     ) -> FetchResult:
         query = dict(params)
@@ -251,7 +255,7 @@ class EntsoeClient:
             entity=entity,
             start=rng.start,
             end=rng.end,
-            retrieved_at=datetime.now(timezone.utc),
+            retrieved_at=datetime.now(UTC),
             payload=response.body,
             content_type=response.headers.get("content-type"),
             encoding="utf-8",

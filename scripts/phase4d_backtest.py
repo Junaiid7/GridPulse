@@ -28,9 +28,13 @@ for _p in (str(REPO_ROOT), str(REPO_ROOT / "tests")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from gridpulse.optimization import run_dispatch_backtest  # noqa: E402
 from support.backtest_fixture import gold_hour_rows  # noqa: E402
-from support.synthetic_electricity import features_rows, run_synthetic_pipeline  # noqa: E402
+from support.synthetic_electricity import (  # noqa: E402
+    features_rows,
+    run_synthetic_pipeline,
+)
+
+from gridpulse.optimization import run_dispatch_backtest  # noqa: E402
 
 SEED = 0
 N_BOOT = 2000

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
 from gridpulse.features.asof import HistoryPoint
 from gridpulse.features.rolling import rolling_mean, rolling_std, rolling_values
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def _pt(s: str, v: float) -> HistoryPoint:
@@ -61,7 +61,9 @@ def test_rolling_std_computed() -> None:
 
     history = [_pt("2024-01-01T11:00:00Z", 10.0), _pt("2024-01-01T11:30:00Z", 20.0)]
     expected = statistics.stdev([10.0, 20.0])
-    assert rolling_std(history, _dt("2024-01-01T12:00:00Z"), 24) == pytest.approx(expected)
+    assert rolling_std(history, _dt("2024-01-01T12:00:00Z"), 24) == pytest.approx(
+        expected
+    )
 
 
 def test_window_zero_or_negative_raises() -> None:

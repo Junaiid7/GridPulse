@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
 from gridpulse.ingestion.common.models import DataPoint, TimeSeries
-from gridpulse.transformation.aggregation import aggregate_locations, as_value_map, to_hourly
+from gridpulse.transformation.aggregation import (
+    aggregate_locations,
+    as_value_map,
+    to_hourly,
+)
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def _series(points: list[tuple[str, float]], *, unit: str = "MW") -> TimeSeries:
@@ -17,7 +21,9 @@ def _series(points: list[tuple[str, float]], *, unit: str = "MW") -> TimeSeries:
         source="entsoe",
         entity="test",
         unit=unit,
-        points=tuple(DataPoint(datetime.fromisoformat(t).astimezone(UTC), v) for t, v in points),
+        points=tuple(
+            DataPoint(datetime.fromisoformat(t).astimezone(UTC), v) for t, v in points
+        ),
         resolution_minutes=15,
         tz="UTC",
     )

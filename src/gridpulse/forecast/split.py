@@ -12,9 +12,9 @@ timeline is partitioned without gaps and without overlaps.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Sequence
 
 from ..ingestion.common import models as _models
 
@@ -31,7 +31,6 @@ class ChronologicalSplit:
     test_start: datetime  # == validation_end
 
     def __post_init__(self):
-        ensure_utc = lambda dt: _models.ensure_utc(dt)
         ts = {
             "train_start": self.train_start,
             "train_end": self.train_end,
@@ -43,7 +42,7 @@ class ChronologicalSplit:
         for name, dt in ts.items():
             if getattr(dt, "tzinfo", None) is None:
                 raise ValueError(f"{name} must be timezone-aware (UTC)")
-            object.__setattr__(self, name, ensure_utc(dt))
+            object.__setattr__(self, name, _models.ensure_utc(dt))
         # Half-open windows share adjacency boundaries; enforce it up front.
         if self.train_end != self.validation_start:
             raise ValueError("train_end must equal validation_start (contiguous windows)")

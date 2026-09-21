@@ -8,6 +8,6 @@ implemented yet.
 """
 
 from .open_meteo import OpenMeteoClient
-from .variables import HOURLY_VARIABLES, Location, NL_POINTS
+from .variables import HOURLY_VARIABLES, NL_POINTS, Location
 
 __all__ = ["OpenMeteoClient", "HOURLY_VARIABLES", "Location", "NL_POINTS"]

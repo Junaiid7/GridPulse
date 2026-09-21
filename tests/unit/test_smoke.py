@@ -51,6 +51,6 @@ def test_holidays_csv_setting_reads_env(monkeypatch) -> None:
     from gridpulse.config import get_settings
 
     assert get_settings().holidays_csv is None
-    monkeypatch.setenv("GRIDPULSE_HOLIDAYS_CSV", str("C:/holidays.csv"))
+    monkeypatch.setenv("GRIDPULSE_HOLIDAYS_CSV", "C:/holidays.csv")
     assert get_settings().holidays_csv is not None
     assert get_settings().holidays_csv.name == "holidays.csv"

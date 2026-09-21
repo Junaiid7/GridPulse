@@ -40,16 +40,12 @@ from __future__ import annotations
 
 import base64
 import json
-from typing import Optional
 
 import lightgbm as lgb
 import numpy as np
 
 from ..contract import ForecastingDataset
 from ..probabilistic import (
-    NOMINAL_P10,
-    NOMINAL_P50,
-    NOMINAL_P90,
     QUANTILES,
     QuantileForecast,
     correct_quantiles,
@@ -67,7 +63,7 @@ class QuantileRegressionModel(ForecastModel):
     def __init__(
         self,
         *,
-        feature_columns: Optional[list] = None,
+        feature_columns: list | None = None,
         quantiles: tuple = QUANTILES,
         n_estimators: int = 120,
         learning_rate: float = 0.05,
@@ -165,7 +161,7 @@ class QuantileRegressionModel(ForecastModel):
             if all(r.features.get(c) is not None for c in cols)
         ]
         # Pre-fill with undefined triples.
-        raw: dict[float, list[Optional[float]]] = {
+        raw: dict[float, list[float | None]] = {
             alpha: [None] * len(rows) for alpha in self.quantiles
         }
         if valid_idx:

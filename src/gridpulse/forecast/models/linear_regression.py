@@ -21,8 +21,6 @@ Design decisions (documented here so the phase report can cite them):
 
 from __future__ import annotations
 
-from typing import Optional
-
 from ..contract import ForecastingDataset
 from .base import ForecastModel, select_rows
 
@@ -33,7 +31,7 @@ class LinearRegressionModel(ForecastModel):
     def __init__(
         self,
         *,
-        feature_columns: Optional[list] = None,
+        feature_columns: list | None = None,
         ridge: float = 1e-6,
         fit_intercept: bool = True,
     ):

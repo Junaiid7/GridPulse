@@ -9,16 +9,16 @@ is the issue row's own residual.
 from __future__ import annotations
 
 import math
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from gridpulse.forecast.contract import build_forecasting_dataset
 from gridpulse.forecast.models import SeasonalNaiveModel
-from gridpulse.forecast.split import chronological_split_by_fraction
 from gridpulse.forecast.models.base import select_rows
+from gridpulse.forecast.split import chronological_split_by_fraction
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def _by_ts(rows):
@@ -99,10 +99,11 @@ def test_naive_vintage_is_issue_row_residual(feature_rows):
 def test_benchmark_split_rejects_leaks_via_chronology(feature_rows):
     """The split used by the benchmark is strictly chronological: train rows are
     all strictly-before validation rows, which are before test rows."""
-    by_ts = _by_ts(feature_rows)
     ds = build_forecasting_dataset(feature_rows)
     split = chronological_split_by_fraction(ds.issue_times)
     train_issues = {r.issue_time for r in ds.rows if r.issue_time < split.train_end}
-    test_issues = {r.issue_time for r in ds.rows if r.issue_time >= split.validation_end}
+    test_issues = {
+        r.issue_time for r in ds.rows if r.issue_time >= split.validation_end
+    }
     assert train_issues and test_issues
     assert max(train_issues) < min(test_issues)

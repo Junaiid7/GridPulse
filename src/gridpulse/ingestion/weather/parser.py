@@ -18,8 +18,7 @@ as UTC. Any null values (rare) are dropped and counted in metadata.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from ..common.errors import EmptyResponseError, MalformedResponseError
 from ..common.models import DataPoint, TimeSeries
@@ -28,8 +27,8 @@ from ..common.models import DataPoint, TimeSeries
 def _to_utc(label: str) -> datetime:
     dt = datetime.fromisoformat(label)
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
 
 
 def parse_historical_json(payload: bytes, *, entity: str = "historical-weather") -> dict[str, TimeSeries]:
@@ -87,7 +86,7 @@ def parse_historical_json(payload: bytes, *, entity: str = "historical-weather")
     return series
 
 
-def _infer_resolution(timestamps: list[datetime]) -> Optional[int]:
+def _infer_resolution(timestamps: list[datetime]) -> int | None:
     if len(timestamps) < 2:
         return None
     deltas = sorted(

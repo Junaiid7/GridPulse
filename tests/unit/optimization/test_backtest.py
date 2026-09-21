@@ -14,6 +14,7 @@ import json
 from datetime import timedelta
 
 import pytest
+from support.dispatch_fixture import tiny_pattern
 
 import gridpulse.optimization.backtest as bt_mod
 from gridpulse.optimization import (
@@ -32,8 +33,6 @@ from gridpulse.optimization import (
     settle_day,
 )
 from gridpulse.optimization.battery import BatteryConfig
-
-from support.dispatch_fixture import tiny_pattern
 
 HORIZON = 24
 
@@ -57,15 +56,12 @@ def backtest(feature_rows, gold_rows):
 # ============================================================================
 def _gold_prices(gold_by_ts, profile):
     return [
-        float(gold_by_ts[ts]["day_ahead_price_eur_mwh"])
-        for ts in profile.target_times
+        float(gold_by_ts[ts]["day_ahead_price_eur_mwh"]) for ts in profile.target_times
     ]
 
 
 def _gold_realised(gold_by_ts, profile):
-    return [
-        float(gold_by_ts[ts]["residual_load_mw"]) for ts in profile.target_times
-    ]
+    return [float(gold_by_ts[ts]["residual_load_mw"]) for ts in profile.target_times]
 
 
 def _first_complete(profiles) -> ForecastProfile:
@@ -262,7 +258,9 @@ def test_bootstrap_positive_difference_means_a_more_expensive():
     a = [10.0, 12.0, 11.0]
     b = [5.0, 5.0, 5.0]
     ci = bootstrap_cost_difference_ci(a, b, n_boot=400)
-    assert ci["difference"] == pytest.approx(6.0)  # mean(a) - mean(b); each pair a-b > 0
+    assert ci["difference"] == pytest.approx(
+        6.0
+    )  # mean(a) - mean(b); each pair a-b > 0
     assert ci["ci_low"] > 0.0
     assert ci["ci_high"] >= ci["ci_low"]
 
@@ -315,7 +313,12 @@ def test_backtest_structure(backtest):
     assert info["n_dropped_days"] >= 0
     assert info["asof_policy"] == ASOF_POLICY
     assert info["price_availability_convention"] == PRICE_AVAILABILITY_CONVENTION
-    assert info["strategies"] == ["no_battery", "greedy_arbitrage", "lp_p50", "scenario_lp"]
+    assert info["strategies"] == [
+        "no_battery",
+        "greedy_arbitrage",
+        "lp_p50",
+        "scenario_lp",
+    ]
 
     # the fixture separation is explicit and honest
     assert info["data_status"] == "FIXTURE-VERIFIED"
@@ -327,7 +330,9 @@ def test_backtest_structure(backtest):
 
     rep = backtest.reproducibility
     assert rep["seed"] == 0 and rep["n_boot"] >= 1
-    assert rep["gridpulse_version"] and rep["python_version"] and rep["generated_at_utc"]
+    assert (
+        rep["gridpulse_version"] and rep["python_version"] and rep["generated_at_utc"]
+    )
 
 
 def test_backtest_strategy_stats(backtest):
@@ -377,7 +382,9 @@ def test_backtest_comparison_fields(backtest):
         assert c["difference"] is not None
         assert c["ci_low"] is not None and c["ci_high"] is not None
         assert c["ci_low"] <= c["ci_high"]
-        assert c["direction"] == f"mean_daily_cost({c['A']}) - mean_daily_cost({c['B']})"
+        assert (
+            c["direction"] == f"mean_daily_cost({c['A']}) - mean_daily_cost({c['B']})"
+        )
         assert c["method"].startswith("percentile bootstrap")
 
 
@@ -390,8 +397,9 @@ def test_backtest_deterministic(feature_rows, gold_rows):
     assert json.dumps(d1, sort_keys=True) == json.dumps(d2, sort_keys=True)
 
 
-def test_backtest_per_day_failure_handling(feature_rows, gold_rows, backtest, profiles,
-                                           monkeypatch):
+def test_backtest_per_day_failure_handling(
+    feature_rows, gold_rows, backtest, profiles, monkeypatch
+):
     """One infeasible day never aborts the run — it is recorded per strategy."""
     failure_issue = sorted(profiles.profiles)[0]
     real = bt_mod.run_dispatch
@@ -441,8 +449,20 @@ def test_backtest_serialization(backtest, tmp_path):
 
 def test_backtest_split_recorded(backtest):
     s = backtest.split
-    for key in ("train_start", "train_end", "validation_start", "validation_end",
-                "test_start", "test_end"):
+    for key in (
+        "train_start",
+        "train_end",
+        "validation_start",
+        "validation_end",
+        "test_start",
+        "test_end",
+    ):
         assert key in s and s[key]  # isoformat strings present
-    assert s["train_start"] < s["train_end"] <= s["validation_start"] < s[
-        "validation_end"] <= s["test_start"] < s["test_end"]
+    assert (
+        s["train_start"]
+        < s["train_end"]
+        <= s["validation_start"]
+        < s["validation_end"]
+        <= s["test_start"]
+        < s["test_end"]
+    )

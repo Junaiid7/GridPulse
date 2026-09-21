@@ -10,7 +10,7 @@ import json
 import logging
 import time
 import urllib.error
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -36,7 +36,7 @@ from gridpulse.ingestion.common.validation import (
     validate_units,
 )
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def _dt(s: str) -> datetime:
@@ -44,7 +44,9 @@ def _dt(s: str) -> datetime:
 
 
 class _FakeResponse:
-    def __init__(self, status: int = 200, body: bytes = b"", headers: dict | None = None):
+    def __init__(
+        self, status: int = 200, body: bytes = b"", headers: dict | None = None
+    ):
         self.status = status
         self.headers = headers or {}
         self._body = body
@@ -61,15 +63,24 @@ class _RecordingOpener:
         self.script = script
 
     def open(self, request, timeout=None):
-        self.calls.append({"url": request.full_url, "headers": dict(request.header_items()), "timeout": timeout})
+        self.calls.append(
+            {
+                "url": request.full_url,
+                "headers": dict(request.header_items()),
+                "timeout": timeout,
+            }
+        )
         return self.script(self.calls[-1])
 
 
 def _http_error(code: int, body: bytes = b"", headers: dict | None = None):
-    return urllib.error.HTTPError("http://fake", code, "err", headers or {}, io.BytesIO(body))
+    return urllib.error.HTTPError(
+        "http://fake", code, "err", headers or {}, io.BytesIO(body)
+    )
 
 
 # ---------------------------------------------------------------- time ranges
+
 
 def test_chunk_range_splits_to_max_span() -> None:
     start = _dt("2024-01-01T00:00:00+00:00")
@@ -107,16 +118,21 @@ def test_ensure_utc_tags_naive_and_converts() -> None:
 
 
 def test_time_range_split_halves() -> None:
-    left, right = TimeRange(_dt("2024-01-01T00:00:00+00:00"), _dt("2024-01-02T00:00:00+00:00")).split()
+    left, right = TimeRange(
+        _dt("2024-01-01T00:00:00+00:00"), _dt("2024-01-02T00:00:00+00:00")
+    ).split()
     assert left.end == right.start
     assert (left.end - left.start) == timedelta(hours=12)
 
 
 # ---------------------------------------------------------------- http client
 
+
 def test_http_get_success() -> None:
     opener = _RecordingOpener(
-        lambda call: _FakeResponse(200, b'{"ok": true}', {"Content-Type": "application/json; charset=utf-8"})
+        lambda call: _FakeResponse(
+            200, b'{"ok": true}', {"Content-Type": "application/json; charset=utf-8"}
+        )
     )
     client = HttpClient(timeout=10, retries=2, backoff=0.1, opener=opener)
     resp = client.get("https://example.com/api", params={"a": 1})
@@ -145,7 +161,9 @@ def test_http_get_401_is_auth_error_and_no_retry() -> None:
 
 
 def test_http_get_429_raises_rate_limit_with_retry_after_and_retries() -> None:
-    opener = _RecordingOpener(lambda call: _raise(_http_error(429, b"slow down", {"Retry-After": "1"})))
+    opener = _RecordingOpener(
+        lambda call: _raise(_http_error(429, b"slow down", {"Retry-After": "1"}))
+    )
     client = HttpClient(retries=3, backoff=0.1, opener=opener)
     with pytest.raises(err.RateLimitError) as excinfo:
         client.get("https://example.com/api")
@@ -200,7 +218,9 @@ def test_http_logs_never_contain_api_key(caplog) -> None:
     caplog.set_level(logging.DEBUG, logger="gridpulse.ingestion.http")
     opener = _RecordingOpener(lambda call: _FakeResponse(200, b"ok"))
     client = HttpClient(retries=1, backoff=0.1, opener=opener)
-    client.get("https://example.com/api", params={"securityToken": "SUPERSECRETKEY", "a": "1"})
+    client.get(
+        "https://example.com/api", params={"securityToken": "SUPERSECRETKEY", "a": "1"}
+    )
     assert "SUPERSECRETKEY" not in caplog.text
     assert "redacted" in caplog.text
 
@@ -214,10 +234,16 @@ def test_mask_url_redacts_token_but_not_other_params() -> None:
 
 # ---------------------------------------------------------------- validation
 
+
 def _series_from(values, freq_min=60, unit="MW"):
     start = _dt("2024-01-01T00:00:00+00:00")
-    points = tuple(DataPoint(start + timedelta(minutes=freq_min * i), v) for i, v in enumerate(values))
-    return TimeSeries(source="test", entity="x", unit=unit, points=points, resolution_minutes=freq_min)
+    points = tuple(
+        DataPoint(start + timedelta(minutes=freq_min * i), v)
+        for i, v in enumerate(values)
+    )
+    return TimeSeries(
+        source="test", entity="x", unit=unit, points=points, resolution_minutes=freq_min
+    )
 
 
 def test_validate_timestamps_catches_duplicates_and_order() -> None:
@@ -228,7 +254,9 @@ def test_validate_timestamps_catches_duplicates_and_order() -> None:
         DataPoint(base, 2.0),  # same timestamp as above → duplicate
         DataPoint(base + timedelta(hours=1), 3.0),
     )
-    dup = TimeSeries(source="test", entity="x", unit="MW", points=dup_points, resolution_minutes=60)
+    dup = TimeSeries(
+        source="test", entity="x", unit="MW", points=dup_points, resolution_minutes=60
+    )
     report = validate_timestamps(dup)
     assert any(i.code == "timestamp_duplicate" for i in report.issues)
     assert not report.ok
@@ -239,14 +267,23 @@ def test_validate_timestamps_catches_duplicates_and_order() -> None:
         DataPoint(base, 2.0),  # earlier than previous
         DataPoint(base + timedelta(hours=1), 3.0),
     )
-    unordered = TimeSeries(source="test", entity="x", unit="MW", points=order_points, resolution_minutes=15)
-    assert any(i.code == "timestamp_order" for i in validate_timestamps(unordered).issues)
+    unordered = TimeSeries(
+        source="test", entity="x", unit="MW", points=order_points, resolution_minutes=15
+    )
+    assert any(
+        i.code == "timestamp_order" for i in validate_timestamps(unordered).issues
+    )
 
 
 def test_validate_timestamps_warns_on_gaps() -> None:
     start = _dt("2024-01-01T00:00:00+00:00")
-    points = (DataPoint(start, 1.0), DataPoint(start + timedelta(hours=3), 2.0))  # 3h gap vs 1h resolution
-    series = TimeSeries(source="test", entity="x", unit="MW", points=points, resolution_minutes=60)
+    points = (
+        DataPoint(start, 1.0),
+        DataPoint(start + timedelta(hours=3), 2.0),
+    )  # 3h gap vs 1h resolution
+    series = TimeSeries(
+        source="test", entity="x", unit="MW", points=points, resolution_minutes=60
+    )
     report = validate_timestamps(series)
     assert any(i.code == "timestamp_gap" for i in report.warnings)
     assert report.ok  # gaps are warnings, not errors
@@ -264,7 +301,14 @@ def test_validate_required_fields_and_units() -> None:
     missing = validate_required_fields({"a": None}, ["a", "b"])
     assert any(i.code == "missing_field" for i in missing.errors)
     assert validate_units(
-        TimeSeries(source="t", entity="prices", unit="EUR/MWh", points=(), resolution_minutes=60), "EUR/MWh"
+        TimeSeries(
+            source="t",
+            entity="prices",
+            unit="EUR/MWh",
+            points=(),
+            resolution_minutes=60,
+        ),
+        "EUR/MWh",
     ).ok
     bad_units = validate_units(_series_from([1.0], unit="GW"), "MW")
     assert any(i.code == "unit_mismatch" for i in bad_units.errors)
@@ -274,14 +318,19 @@ def test_aggregate_combines_reports() -> None:
     # Series with duplicate timestamps.
     base = _dt("2024-01-01T00:00:00+00:00")
     dup_points = (DataPoint(base, 1.0), DataPoint(base, 2.0))
-    dup_series = TimeSeries(source="test", entity="x", unit="MW", points=dup_points, resolution_minutes=60)
-    combined = aggregate([validate_timestamps(dup_series), validate_required_fields({}, ["x"])])
+    dup_series = TimeSeries(
+        source="test", entity="x", unit="MW", points=dup_points, resolution_minutes=60
+    )
+    combined = aggregate(
+        [validate_timestamps(dup_series), validate_required_fields({}, ["x"])]
+    )
     assert combined.errors
     assert "timestamp_duplicate" in {i.code for i in combined.issues}
     assert "missing_field" in {i.code for i in combined.issues}
 
 
 # ---------------------------------------------------------------- bronze storage
+
 
 def _fetch_result(**overrides) -> FetchResult:
     base = dict(
@@ -312,7 +361,10 @@ def test_bronze_paths_are_deterministic(tmp_path: Path) -> None:
 def test_bronze_layout_source_entity_date(tmp_path: Path) -> None:
     result = _fetch_result(retrieved_at=_dt("2026-09-14T08:00:00+00:00"))
     write = write_bronze(tmp_path, result)
-    assert write.payload_path.parent == tmp_path / "entsoe" / "actual-total-load" / "20240101__20240102"
+    assert (
+        write.payload_path.parent
+        == tmp_path / "entsoe" / "actual-total-load" / "20240101__20240102"
+    )
     assert write.payload_path.suffix == ".xml"
     assert write.manifest_path.exists()
     assert (write.payload_path.read_bytes()) == result.payload

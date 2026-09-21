@@ -3,7 +3,7 @@ risk score, missing-quantile handling."""
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -17,13 +17,15 @@ from gridpulse.forecast.probabilistic import (
     risk_score,
 )
 
-UTC = timezone.utc
+UTC = UTC
 ISSUE = datetime(2024, 2, 1, 6, 0, tzinfo=UTC)
 TARGET = ISSUE + timedelta(hours=24)
 
 
 def test_valid_triple_constructs():
-    q = QuantileForecast(issue_time=ISSUE, target_time=TARGET, p10=100.0, p50=110.0, p90=130.0)
+    q = QuantileForecast(
+        issue_time=ISSUE, target_time=TARGET, p10=100.0, p50=110.0, p90=130.0
+    )
     assert q.has_quantiles
     assert q.width == pytest.approx(30.0)
     assert q.risk_score is not None
@@ -32,21 +34,31 @@ def test_valid_triple_constructs():
 def test_quantile_ordering_is_enforced_not_silently_reordered():
     # p10 > p50 -> rejected with a clear message (never silently reordered).
     with pytest.raises(ValueError, match="quantile ordering violated"):
-        QuantileForecast(issue_time=ISSUE, target_time=TARGET, p10=120.0, p50=110.0, p90=130.0)
+        QuantileForecast(
+            issue_time=ISSUE, target_time=TARGET, p10=120.0, p50=110.0, p90=130.0
+        )
     # p50 > p90 -> rejected too.
     with pytest.raises(ValueError, match="quantile ordering violated"):
-        QuantileForecast(issue_time=ISSUE, target_time=TARGET, p10=100.0, p50=130.0, p90=120.0)
+        QuantileForecast(
+            issue_time=ISSUE, target_time=TARGET, p10=100.0, p50=130.0, p90=120.0
+        )
     # Equal quantiles are allowed (degenerate, but ordered).
-    q = QuantileForecast(issue_time=ISSUE, target_time=TARGET, p10=110.0, p50=110.0, p90=110.0)
+    q = QuantileForecast(
+        issue_time=ISSUE, target_time=TARGET, p10=110.0, p50=110.0, p90=110.0
+    )
     assert q.has_quantiles
 
 
 def test_alpha_low_high_are_checked():
     with pytest.raises(ValueError, match="alpha_low"):
         QuantileForecast(
-            issue_time=ISSUE, target_time=TARGET,
-            p10=1.0, p50=2.0, p90=3.0,
-            alpha_low=0.9, alpha_high=0.1,
+            issue_time=ISSUE,
+            target_time=TARGET,
+            p10=1.0,
+            p50=2.0,
+            p90=3.0,
+            alpha_low=0.9,
+            alpha_high=0.1,
         )
 
 
@@ -62,7 +74,9 @@ def test_quantile_forecasts_container_length():
     qs = QuantileForecasts(
         rows=[
             QuantileForecast(issue_time=ISSUE, target_time=TARGET, p10=1, p50=2, p90=3),
-            QuantileForecast(issue_time=TARGET, target_time=TARGET + timedelta(hours=24)),
+            QuantileForecast(
+                issue_time=TARGET, target_time=TARGET + timedelta(hours=24)
+            ),
         ]
     )
     assert len(qs) == 2
@@ -71,9 +85,9 @@ def test_quantile_forecasts_container_length():
 
 def test_detect_quantile_crossing():
     assert not detect_quantile_crossing(1.0, 2.0, 3.0)
-    assert detect_quantile_crossing(3.0, 2.0, 4.0)          # p10 > p50
-    assert detect_quantile_crossing(1.0, 4.0, 3.0)          # p50 > p90
-    assert detect_quantile_crossing(3.0, 2.0, 1.0)          # fully reversed
+    assert detect_quantile_crossing(3.0, 2.0, 4.0)  # p10 > p50
+    assert detect_quantile_crossing(1.0, 4.0, 3.0)  # p50 > p90
+    assert detect_quantile_crossing(3.0, 2.0, 1.0)  # fully reversed
     # Undefined triples are not a crossing.
     assert not detect_quantile_crossing(None, 2.0, 3.0)
     assert not detect_quantile_crossing(1.0, None, 3.0)

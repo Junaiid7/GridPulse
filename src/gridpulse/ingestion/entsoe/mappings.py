@@ -8,7 +8,6 @@ the widely used entsoe-py client; see ``docs/data-sources.md``.
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Optional
 
 from .domains import Area
 
@@ -87,7 +86,7 @@ def day_ahead_load_forecast_params(area: Area) -> dict[str, str]:
     }
 
 
-def actual_generation_params(area: Area, psr_type: Optional[str] = None) -> dict[str, str]:
+def actual_generation_params(area: Area, psr_type: str | None = None) -> dict[str, str]:
     params = {
         "documentType": DOC_ACTUAL_GENERATION,
         "processType": PROCESS_REALISED,
@@ -100,7 +99,7 @@ def actual_generation_params(area: Area, psr_type: Optional[str] = None) -> dict
     return params
 
 
-def day_ahead_prices_params(area: Area, *, classification_sequence: Optional[int] = None) -> dict[str, str | int]:
+def day_ahead_prices_params(area: Area, *, classification_sequence: int | None = None) -> dict[str, str | int]:
     params: dict[str, str | int] = {
         "documentType": DOC_DAYAHEAD_PRICES,
         "in_Domain": area.code,

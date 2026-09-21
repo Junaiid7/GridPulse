@@ -12,7 +12,7 @@ component writes to the same canonical locations.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 #: Repository root: <repo>/src/gridpulse/config.py -> parents[2] is the repo root.
@@ -49,6 +49,10 @@ class Settings:
     #: Optional path to a holidays CSV (see ``features.holiday``). Point
     #: ``GRIDPULSE_HOLIDAYS_CSV`` at authoritative data for production models.
     holidays_csv: Path | None = None
+    cors_origins: list[str] = field(default_factory=lambda: ["*"])
+    api_key: str | None = None
+    dev_mode: bool = False
+    json_logs: bool = False
 
     @property
     def bronze_dir(self) -> Path:
@@ -68,6 +72,8 @@ class Settings:
 
 def get_settings() -> Settings:
     """Build settings from the environment, falling back to local defaults."""
+    cors_raw = os.environ.get("GRIDPULSE_CORS_ORIGINS", "*")
+    cors_origins = [o.strip() for o in cors_raw.split(",")] if cors_raw else ["*"]
     return Settings(
         project_root=PROJECT_ROOT,
         data_root=Path(os.environ.get("GRIDPULSE_DATA_DIR", DEFAULT_DATA_DIR)),
@@ -76,6 +82,10 @@ def get_settings() -> Settings:
         http_retries=int(os.environ.get("GRIDPULSE_HTTP_RETRIES", DEFAULT_HTTP_RETRIES)),
         entsoe_api_key=os.environ.get("ENTSOE_API_KEY") or None,
         holidays_csv=_opt_path(os.environ.get("GRIDPULSE_HOLIDAYS_CSV")),
+        cors_origins=cors_origins,
+        api_key=os.environ.get("GRIDPULSE_API_KEY"),
+        dev_mode=os.environ.get("GRIDPULSE_DEV_MODE", "false").lower() == "true",
+        json_logs=os.environ.get("GRIDPULSE_JSON_LOGS", "false").lower() == "true",
     )
 
 

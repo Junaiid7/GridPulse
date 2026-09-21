@@ -5,17 +5,14 @@ scenario_lp) across physical constraints, determinism, infeasibility, and
 behavioral scenarios.
 """
 
-import math
-
 import pytest
 
 from gridpulse.optimization import (
+    STRATEGIES,
     BatteryConfig,
     DispatchInfeasible,
     DispatchInput,
-    DispatchResult,
     run_dispatch,
-    STRATEGIES,
 )
 from gridpulse.optimization.battery import BatteryModel
 from tests.support.dispatch_fixture import synthetic_dispatch_input, tiny_pattern
@@ -69,7 +66,9 @@ def test_discharge_power_cap_respected(strategy):
     max_dis = inputs.battery.max_discharge_power_mw
 
     for i, dis in enumerate(result.discharge_mw):
-        assert 0.0 <= dis <= max_dis + 1e-6, f"hour {i} discharge {dis} exceeds cap {max_dis}"
+        assert 0.0 <= dis <= max_dis + 1e-6, (
+            f"hour {i} discharge {dis} exceeds cap {max_dis}"
+        )
 
 
 # -- Test 4: Initial SOC respected -------------------------------------------
@@ -102,7 +101,9 @@ def test_soc_transition_recomputed_matches_returned(strategy):
 
     model = BatteryModel(inputs.battery)
     recomputed = model.state_vector(
-        result.charge_mw, result.discharge_mw, start_soc_mwh=inputs.battery.initial_soc_mwh
+        result.charge_mw,
+        result.discharge_mw,
+        start_soc_mwh=inputs.battery.initial_soc_mwh,
     )
 
     for i, (expected, actual) in enumerate(zip(recomputed, result.soc_mwh)):
@@ -162,14 +163,20 @@ def test_scenario_ordering_violation_rejected():
             target_times=inputs.target_times,
             price_eur_mwh=inputs.price_eur_mwh,
             residual_load_mw=inputs.residual_load_mw,
-            scenario_residual_load_mw={"p10": tuple(bad_p10), "p50": scenarios["p50"], "p90": scenarios["p90"]},
+            scenario_residual_load_mw={
+                "p10": tuple(bad_p10),
+                "p50": scenarios["p50"],
+                "p90": scenarios["p90"],
+            },
         )
 
 
 # -- Test 10: Determinism ---------------------------------------------------
 
 
-@pytest.mark.parametrize("strategy", ["no_battery", "greedy_arbitrage", "lp_p50", "scenario_lp"])
+@pytest.mark.parametrize(
+    "strategy", ["no_battery", "greedy_arbitrage", "lp_p50", "scenario_lp"]
+)
 def test_determinism(strategy):
     """Running the same strategy twice produces identical to_dict() output."""
     inputs = synthetic_dispatch_input()
@@ -192,9 +199,13 @@ def test_no_battery_zero_action_and_cost():
 
     assert all(ch == 0.0 for ch in result.charge_mw)
     assert all(dis == 0.0 for dis in result.discharge_mw)
-    assert all(soc == pytest.approx(inputs.battery.initial_soc_mwh) for soc in result.soc_mwh)
+    assert all(
+        soc == pytest.approx(inputs.battery.initial_soc_mwh) for soc in result.soc_mwh
+    )
 
-    expected_cost = sum(p * r for p, r in zip(inputs.price_eur_mwh, inputs.residual_load_mw))
+    expected_cost = sum(
+        p * r for p, r in zip(inputs.price_eur_mwh, inputs.residual_load_mw)
+    )
     assert result.simulated_cost_eur == pytest.approx(expected_cost)
 
 
@@ -297,8 +308,12 @@ def test_low_high_ramp_charges_cheap_discharges_expensive(strategy):
     late_charge = sum(result.charge_mw[16:])
     late_discharge = sum(result.discharge_mw[16:])
 
-    assert early_charge > early_discharge + 1e-3, "expected net charge in early cheap hours"
-    assert late_discharge > late_charge + 1e-3, "expected net discharge in late expensive hours"
+    assert early_charge > early_discharge + 1e-3, (
+        "expected net charge in early cheap hours"
+    )
+    assert late_discharge > late_charge + 1e-3, (
+        "expected net discharge in late expensive hours"
+    )
 
 
 # -- Test 17: Infeasibility -------------------------------------------------
@@ -363,7 +378,9 @@ def test_no_simultaneous_charge_and_discharge(strategy):
 
     for t, (ch, dis) in enumerate(zip(result.charge_mw, result.discharge_mw)):
         simultaneous = ch > tol and dis > tol
-        assert not simultaneous, f"hour {t} has simultaneous charge={ch} and discharge={dis}"
+        assert not simultaneous, (
+            f"hour {t} has simultaneous charge={ch} and discharge={dis}"
+        )
 
 
 # -- Strategy registry ------------------------------------------------------

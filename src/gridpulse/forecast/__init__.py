@@ -24,16 +24,21 @@ fixture data are labelled ``FIXTURE-VERIFIED`` and must never be presented as
 live-validated results.
 """
 
+from .benchmark import (
+    BenchmarkResult,
+    ProbabilisticBenchmarkResult,
+    run_benchmark,
+    run_probabilistic_benchmark,
+)
 from .contract import ForecastingDataset, ForecastRow, build_forecasting_dataset
-from .split import ChronologicalSplit, chronological_split_by_fraction, partition_timestamps
 from .evaluate import (
-    compute_point_metrics,
     bootstrap_mae_ci,
     bootstrap_mae_difference_ci,
-    pinball_loss,
+    compute_point_metrics,
     empirical_coverage,
     interval_coverage,
     interval_width_stats,
+    pinball_loss,
     probabilistic_metrics,
 )
 from .probabilistic import (
@@ -44,11 +49,10 @@ from .probabilistic import (
     detect_quantile_crossing,
     risk_score,
 )
-from .benchmark import (
-    run_benchmark,
-    BenchmarkResult,
-    run_probabilistic_benchmark,
-    ProbabilisticBenchmarkResult,
+from .split import (
+    ChronologicalSplit,
+    chronological_split_by_fraction,
+    partition_timestamps,
 )
 
 __all__ = [

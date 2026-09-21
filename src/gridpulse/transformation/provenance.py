@@ -7,9 +7,9 @@ records: its tier, source entity, unit, the transformation policy in force
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Mapping
+from datetime import UTC, datetime
 
 
 @dataclass(frozen=True)
@@ -27,7 +27,7 @@ class Provenance:
 
     def __post_init__(self) -> None:
         if self.generated_at is None:
-            object.__setattr__(self, "generated_at", datetime.now(timezone.utc))
+            object.__setattr__(self, "generated_at", datetime.now(UTC))
 
     def to_dict(self) -> Mapping[str, object]:
         return {

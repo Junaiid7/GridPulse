@@ -3,12 +3,8 @@
 Uncertainty-aware residual-load forecasting and battery storage dispatch
 optimisation for the Dutch electricity market.
 
-Status: **Phase 3 — transformation + feature-engineering foundation**.
-Phase 2 (ENTSO-E / Open-Meteo ingestion → Bronze) is complete; Phase 3 adds the
-Silver/Gold transformation layer (liquid CSV warehouse: cleaning, hourly NL
-dataset with residual load) and a leakage-safe feature pipeline (calendar,
-holiday, rolling, weather). Forecasting/optimisation (Phase 4+) are not
-implemented yet.
+Status: **Phase 7 — production readiness & serving infrastructure complete**.
+Ingestion (ENTSO-E / Open-Meteo), Silver/Gold transformation layer, leakage-safe feature engineering, probabilistic quantile forecasting (LightGBM), battery dispatch optimization (SciPy HiGHS LP), historical backtesting, FastAPI serving layer, Streamlit operational dashboard, structured logging, request correlation IDs, security hardening, and GitHub Actions CI/CD automation are fully implemented and verified with 405 passing tests.
 
 ## Purpose
 
@@ -37,24 +33,22 @@ Areas: NL (`10YNL----------L`), DE_LU (`10Y1001A1001A82H`), BE (`10YBE----------
 See [`docs/data-sources.md`](docs/data-sources.md) for detailed availability
 notes, limitations, and the NL imbalance-price status.
 
-## Architecture (target)
+## Architecture
 
 Layered pipeline; each layer is an isolated subpackage under `src/gridpulse`:
 
 | Package         | Responsibility                                        |
 | --------------- | ----------------------------------------------------- |
 | `ingestion`     | Pull raw ENTSO-E / Open-Meteo data                    |
-| `validation`    | Data-quality checks (Great Expectations)              |
-| `warehouse`     | Bronze / Silver / Gold storage (DuckDB / PostgreSQL)  |
-| `features`      | Feature engineering for forecasting                   |
-| `models`        | Point + probabilistic load forecasts (LightGBM)       |
-| `risk_engine`   | Uncertainty & residual-load risk quantification       |
-| `optimization`  | Storage dispatch optimisation (SciPy / PuLP)          |
-| `simulation`    | Historical backtesting of forecast-and-dispatch       |
-| `evaluation`    | Experiment tracking & evaluation (MLflow)             |
-| `api`           | FastAPI serving layer                                 |
-| `dashboard`     | Streamlit operational dashboard                       |
-| `ai_briefing`   | Automated analyst briefings                           |
+| `validation`    | Schema and data quality checks                        |
+| `transformation`| Bronze / Silver / Gold CSV warehouse & DST policy     |
+| `features`      | Leakage-safe feature engineering                      |
+| `forecast`      | Point & probabilistic residual load models (LightGBM) |
+| `optimization`  | Battery storage dispatch & backtesting (SciPy HiGHS)  |
+| `api`           | FastAPI serving layer (health, forecast, dispatch)    |
+| `dashboard`     | Streamlit operational dashboard & visualizations      |
+| `orchestration` | End-to-end pipeline & backtest orchestration          |
+| `reporting`     | Data quality and evaluation reports                   |
 
 Data follows a medallion layout: raw inputs (**bronze**) → cleaned/conformed
 (**silver**) → curated analytical tables (**gold**). Datasets are never
@@ -65,35 +59,20 @@ committed to Git.
 ```
 src/gridpulse/                  # Main package (src layout)
   config.py                     # Centralised configuration
-  ingestion/
-    common/                     # Shared: HTTP, models, validation, storage
-    entsoe/                     # ENTSO-E Transparency Platform client + parser
-    weather/                    # Open-Meteo Historical Archive client + parser
-    fallback/                   # Deliberately-unimplemented NL imbalance fallback
-    wiring.py                   # Client construction from config
-  transformation/               # Phase 3: Silver/Gold CSV warehouse
-    times.py                    # UTC ↔ Europe/Amsterdam DST policy
-    schema.py                   # Explicit Silver/Gold column schemas
-    csvio.py / provenance.py    # Deterministic CSV + sidecar metadata
-    aggregation.py              # Hourly downsampling + location combining
-    silver/                     # Cleaning conformed source tables
-    gold/                       # Hourly NL dataset + residual load
-  features/                     # Phase 3: leakage-safe feature builders
-    asof.py                     # The information-cut guard (history_before)
-    calendar.py / holiday.py    # Calendar + holiday features
-    rolling.py                  # Backward-looking rolling statistics
-    weather.py                  # Last-observation-before weather features
-tests/
-  unit/ingestion/               # Phase 2 mocked tests (no live network)
-  unit/transformation/          # Phase 3 Silver/Gold transformation tests
-  unit/features/                # Phase 3 feature-engineering tests
-  fixtures/                     # Synthetic XML/JSON test fixtures
+  ingestion/                    # ENTSO-E and Open-Meteo clients/parsers
+  transformation/               # Silver/Gold CSV warehouse & DST policy
+  features/                     # Leakage-safe feature builders
+  forecast/                     # Probabilistic models (LightGBM), evaluation, persistence
+  optimization/                 # Battery dispatch optimization & backtesting
+  api/                          # FastAPI serving layer (app, dependencies, schemas)
+  dashboard/                    # Streamlit operational dashboard app
+  orchestration/                # End-to-end orchestration runner
+  reporting/                    # Data quality reports
+tests/                          # Comprehensive unit & integration test suite (405 tests)
 config/                         # Centralised configuration profiles
 docs/                           # Design and operations documentation
-docs/transform-model.md         # Phase 3 transformation & leakage design
-scripts/                        # Operational/maintenance scripts
-notebooks/                      # Exploratory analysis
-data/bronze/ data/silver/ data/gold/   # Data tiers (git-ignored)
+scripts/                        # Operational benchmarks & scripts
+data/bronze/ data/silver/ data/gold/ data/models/ data/reports/  # Data tiers (git-ignored)
 ```
 
 Configuration is centralised in `src/gridpulse/config.py` and overridable via
@@ -105,13 +84,10 @@ Use the existing project virtual environment — do not create a new one.
 
 ```bash
 cd C:\Users\junai\Desktop\GridPulse
-.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.venv\Scripts\python.exe -m pip install -e ".[dev,serving,dashboard]"
 ```
 
-This installs the package in editable mode plus `pytest` (the only dev
-dependency so far). The runtime has one dependency — `tzdata`, needed for
-`zoneinfo.ZoneInfo` on Windows — everything else uses only the Python standard
-library (urllib, xml, zipfile, json, logging, csv, zoneinfo).
+This installs the package in editable mode along with `pytest`, `ruff`, and optional dependencies for serving (`fastapi`, `uvicorn`) and the dashboard (`streamlit`, `plotly`). Core runtime dependencies include `tzdata`, `lightgbm`, and `scipy`.
 
 ## Secrets
 
@@ -131,24 +107,59 @@ $env:ENTSOE_API_KEY = "your-key-here"
 .venv\Scripts\python.exe -m pytest
 ```
 
-168 tests covering: HTTP retries/auth/rate-limiting, ENTSO-E parameter
+405 tests covering: HTTP retries/auth/rate-limiting, ENTSO-E parameter
 construction/chunking/halving fallback/XML parsing (load, prices, generation,
 flows, imbalance ZIP), Open-Meteo parameter construction/JSON parsing, Bronze
 storage determinism/manifests, validation logic, offline pipeline fixtures, the
-Silver/Gold transformation layer (timezone/DST policy, aggregation, schemas,
-CSV storage, residual load, hourly NL dataset) and the leakage-safe feature
-builders (as-of cut, calendar, holiday calendars, rolling, weather).
+Silver/Gold transformation layer, leakage-safe feature builders, probabilistic residual-load forecasting models, battery dispatch optimization (HiGHS LP), backtesting/evaluation, API serving layers, and dashboard components.
 
-## Roadmap (later phases — not implemented yet)
+## CI/CD & Quality Automation
 
-1. ✅ Data ingestion foundation (ENTSO-E + Open-Meteo → Bronze)
-2. 🚧 Silver/Gold warehouse (CSV foundation done; DuckDB/PostgreSQL, Great
-   Expectations deferred) + residual-load Gold dataset
-3. 🚧 Feature-engineering foundation (calendar/holiday/rolling/weather done);
-   LightGBM point/probabilistic residual-load models not yet started
-4. Risk engine, storage dispatch optimisation, historical simulation
-5. MLflow evaluation, FastAPI serving, Streamlit dashboard, AI briefing
-6. Prefect orchestration, Docker, GitHub Actions CI/CD
+GridPulse uses **GitHub Actions** for continuous integration. The CI workflow runs automatically on every push and pull request to `main`.
+
+### Automated Checks
+- **Matrix Python Versions**: Tests on Python 3.12 and Python 3.13 (`ubuntu-latest`).
+- **Ruff Linting**: Checks code quality and imports (`ruff check .`).
+- **Ruff Formatting**: Verifies code formatting compliance (`ruff format --check .`).
+- **Test Suite**: Runs the complete pytest suite (`pytest -ra`).
+
+### Running Quality Checks Locally
+You can run the exact same checks locally before committing:
+
+```bash
+# Install development dependencies
+.venv\Scripts\python.exe -m pip install -e ".[dev,serving,dashboard]"
+
+# Run Ruff linter
+.venv\Scripts\python.exe -m ruff check .
+
+# Check code formatting
+.venv\Scripts\python.exe -m ruff format --check .
+
+# Run test suite
+.venv\Scripts\python.exe -m pytest -ra
+```
+
+## Roadmap
+
+**Completed:**
+- ✅ Data ingestion (ENTSO-E + Open-Meteo → Bronze)
+- ✅ Silver/Gold CSV warehouse with residual-load datasets
+- ✅ Leakage-safe feature engineering (calendar, holiday, rolling, weather)
+- ✅ Probabilistic residual-load forecasting (LightGBM quantile regression)
+- ✅ Battery dispatch optimization (SciPy HiGHS LP)
+- ✅ Historical backtesting and evaluation
+- ✅ FastAPI serving layer (health, forecast, dispatch endpoints)
+- ✅ Streamlit operational dashboard
+- ✅ End-to-end orchestration
+- ✅ GitHub Actions CI/CD (Python 3.12/3.13, Ruff linting/formatting, pytest)
+
+**Future enhancements:**
+- DuckDB/PostgreSQL warehouse backend (currently CSV-based)
+- Great Expectations data quality framework integration
+- MLflow experiment tracking
+- Prefect workflow orchestration
+- AI-generated analyst briefings
 
 ## Contributing
 

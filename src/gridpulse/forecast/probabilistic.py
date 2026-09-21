@@ -44,9 +44,9 @@ signed-positive; when ``P50`` is missing or too close to zero the score is
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, Sequence
 
 #: Nominal quantiles for the P10/P50/P90 triple.
 QUANTILES: tuple[float, float, float] = (0.10, 0.50, 0.90)
@@ -60,7 +60,7 @@ NOMINAL_INTERVAL_COVERAGE = NOMINAL_P90 - NOMINAL_P10  # 0.80
 P50_EPS = 1e-9
 
 
-def risk_score(p10: Optional[float], p50: Optional[float], p90: Optional[float]) -> Optional[float]:
+def risk_score(p10: float | None, p50: float | None, p90: float | None) -> float | None:
     """Relative uncertainty indicator ``(P90 - P10) / |P50|``.
 
     Returns ``None`` when any quantile is missing or when ``|P50|`` is at or
@@ -75,7 +75,7 @@ def risk_score(p10: Optional[float], p50: Optional[float], p90: Optional[float])
 
 
 def detect_quantile_crossing(
-    p10: Optional[float], p50: Optional[float], p90: Optional[float]
+    p10: float | None, p50: float | None, p90: float | None
 ) -> bool:
     """True when a triple violates the ordering ``p10 <= p50 <= p90``.
 
@@ -120,9 +120,9 @@ class QuantileForecast:
 
     issue_time: datetime
     target_time: datetime
-    p10: Optional[float] = None
-    p50: Optional[float] = None
-    p90: Optional[float] = None
+    p10: float | None = None
+    p50: float | None = None
+    p90: float | None = None
     alpha_low: float = NOMINAL_P10
     alpha_high: float = NOMINAL_P90
 
@@ -146,11 +146,11 @@ class QuantileForecast:
         return all(v is not None for v in (self.p10, self.p50, self.p90))
 
     @property
-    def risk_score(self) -> Optional[float]:
+    def risk_score(self) -> float | None:
         return risk_score(self.p10, self.p50, self.p90)
 
     @property
-    def width(self) -> Optional[float]:
+    def width(self) -> float | None:
         """Interval width ``P90 - P10`` (``None`` when undefined)."""
         if not self.has_quantiles:
             return None

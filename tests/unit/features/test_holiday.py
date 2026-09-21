@@ -11,8 +11,8 @@ from gridpulse.features.holiday import (
     easter_sunday,
 )
 
-
 # --- Gregorian Easter (Meeus–Jones–Butcher) ---
+
 
 def test_easter_sunday_known_years() -> None:
     assert easter_sunday(2024) == date(2024, 3, 31)
@@ -66,6 +66,7 @@ def test_as_set_is_non_empty() -> None:
 
 
 # --- CsvHolidayCalendar ---
+
 
 def test_csv_calendar_loads_and_filters(tmp_path) -> None:
     csv_path = tmp_path / "holidays.csv"

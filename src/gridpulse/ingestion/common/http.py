@@ -13,13 +13,13 @@ from __future__ import annotations
 
 import http.client
 import logging
-import socket
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any
 
 from .errors import AuthError, HttpError, RateLimitError
 
@@ -90,7 +90,7 @@ class HttpClient:
         retries: int = 3,
         backoff: float = 0.5,
         opener: Any = None,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ) -> None:
         if retries < 1:
             raise ValueError("retries must be >= 1")
@@ -104,8 +104,8 @@ class HttpClient:
         self,
         url: str,
         *,
-        params: Optional[Mapping[str, str | int]] = None,
-        headers: Optional[Mapping[str, str]] = None,
+        params: Mapping[str, str | int] | None = None,
+        headers: Mapping[str, str] | None = None,
     ) -> HttpResponse:
         final_url = url
         if params:
@@ -145,14 +145,7 @@ class HttpClient:
                 if attempt == self.retries:
                     raise retry from exc
                 self._sleep_before_retry(attempt, retry_after)
-            except (
-                urllib.error.URLError,
-                socket.timeout,
-                TimeoutError,
-                ConnectionError,
-                http.client.RemoteDisconnected,
-                http.client.HTTPException,
-            ) as exc:
+            except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.RemoteDisconnected, http.client.HTTPException) as exc:
                 self.log.warning("GET %s connection error: %r", mask_url(final_url), exc)
                 if attempt == self.retries:
                     raise HttpError(

@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 
 from ..config import get_settings, require_entsoe_api_key
-
 from .common.http import HttpClient
 from .entsoe.client import EntsoeClient
 from .weather.open_meteo import OpenMeteoClient

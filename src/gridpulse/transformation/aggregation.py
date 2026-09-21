@@ -13,8 +13,8 @@ Two deterministic, documented transformations:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Iterable, Mapping
+from collections.abc import Iterable, Mapping
+from datetime import datetime
 
 from ..ingestion.common.models import DataPoint, TimeSeries, ensure_utc
 

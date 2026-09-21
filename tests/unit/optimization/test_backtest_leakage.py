@@ -23,7 +23,11 @@ from gridpulse.forecast.split import (
     chronological_split_by_fraction,
     partition_timestamps,
 )
-from gridpulse.optimization import build_forecast_profiles, run_dispatch_backtest, settle_day
+from gridpulse.optimization import (
+    build_forecast_profiles,
+    run_dispatch_backtest,
+    settle_day,
+)
 
 UTC_ISSUE = 6
 
@@ -75,7 +79,9 @@ def test_test_window_rows_are_predict_only(feature_rows, profiles):
     for k in range(24):
         ds = _offset_dataset(feature_rows, k)
         test_issues = partition_timestamps(ds.issue_times, split)["test"]
-        actual = len([r for r in ds.rows if split.test_start <= r.issue_time < split.test_end])
+        actual = len(
+            [r for r in ds.rows if split.test_start <= r.issue_time < split.test_end]
+        )
         assert offsets[k]["n_test_rows"] == len(test_issues) == actual
         assert len(test_issues) >= 1
         # every test issue time lies in the test window proper
@@ -88,8 +94,14 @@ def test_test_window_rows_are_predict_only(feature_rows, profiles):
 # ============================================================================
 def test_split_half_open_contiguous_and_aware(profiles):
     split = profiles.split
-    for dt in (split.train_start, split.train_end, split.validation_start,
-               split.validation_end, split.test_start, split.test_end):
+    for dt in (
+        split.train_start,
+        split.train_end,
+        split.validation_start,
+        split.validation_end,
+        split.test_start,
+        split.test_end,
+    ):
         assert dt.tzinfo is not None
     assert split.train_start < split.train_end
     assert split.train_end == split.validation_start
@@ -126,7 +138,9 @@ def test_settlement_only_place_realised_enters(profiles, gold_by_ts):
     """Identical dispatch schedule & throughput for different realised vectors;
     only the settled cost (and possibly undercut count) changes."""
     prof = next(p for p in profiles.profiles.values() if p.complete)
-    prices = [float(gold_by_ts[ts]["day_ahead_price_eur_mwh"]) for ts in prof.target_times]
+    prices = [
+        float(gold_by_ts[ts]["day_ahead_price_eur_mwh"]) for ts in prof.target_times
+    ]
     realised_a = [float(gold_by_ts[ts]["residual_load_mw"]) for ts in prof.target_times]
     realised_b = [r + 25.0 for r in realised_a]  # different realised horizon
 
@@ -149,8 +163,7 @@ def test_realised_column_only_changes_settlement(feature_rows, gold_rows):
     """Doubling every gold *residual* value leaves schedules untouched: throughput
     is identical across the two backtests, only settled costs / undercut move."""
     gold_shifted = [
-        {**row,
-         "residual_load_mw": str(2.0 * float(row["residual_load_mw"]))}
+        {**row, "residual_load_mw": str(2.0 * float(row["residual_load_mw"]))}
         for row in gold_rows
     ]
     bt_base = run_dispatch_backtest(feature_rows, gold_rows)
@@ -213,5 +226,3 @@ def test_profiles_fully_deterministic(feature_rows):
     assert [prof.to_dict() for _, prof in sorted(p1.profiles.items())] == [
         prof.to_dict() for _, prof in sorted(p2.profiles.items())
     ]
-
-

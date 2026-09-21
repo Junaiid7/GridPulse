@@ -11,15 +11,15 @@ True numerical-weather-prediction features are a documented future extension
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Mapping, Optional
 
 from ..ingestion.common.models import TimeSeries
 from ..transformation.aggregation import aggregate_locations, to_hourly
 from .asof import history_before
 
 
-def last_observation_before(series: TimeSeries, as_of: datetime) -> Optional[float]:
+def last_observation_before(series: TimeSeries, as_of: datetime) -> float | None:
     """Value of the most recent observation strictly before ``as_of``."""
     points = history_before(((p.timestamp, p.value) for p in series.points), as_of)
     return points[-1].value if points else None
@@ -38,7 +38,7 @@ def hourly_nl(by_location: Mapping[str, TimeSeries]) -> TimeSeries:
 def weather_features(
     by_variable: Mapping[str, TimeSeries],
     as_of: datetime,
-) -> dict[str, Optional[float]]:
+) -> dict[str, float | None]:
     """Per variable: most recent observed value strictly before ``as_of``."""
     return {var: last_observation_before(series, as_of) for var, series in by_variable.items()}
 
