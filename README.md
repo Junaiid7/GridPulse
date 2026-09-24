@@ -3,8 +3,7 @@
 Uncertainty-aware residual-load forecasting and battery storage dispatch
 optimisation for the Dutch electricity market.
 
-Status: **Phase 7 — production readiness & serving infrastructure complete**.
-Ingestion (ENTSO-E / Open-Meteo), Silver/Gold transformation layer, leakage-safe feature engineering, probabilistic quantile forecasting (LightGBM), battery dispatch optimization (SciPy HiGHS LP), historical backtesting, FastAPI serving layer, Streamlit operational dashboard, structured logging, request correlation IDs, security hardening, and GitHub Actions CI/CD automation are fully implemented and verified with 405 passing tests.
+Status: **Phase 7 complete** — ingestion (ENTSO-E / Open-Meteo), Silver/Gold transformation layer, leakage-safe feature engineering, probabilistic quantile forecasting (LightGBM), battery dispatch optimization (SciPy HiGHS LP), historical backtesting, FastAPI serving layer, Streamlit operational dashboard, and GitHub Actions CI are fully implemented and verified with 405 passing tests.
 
 ## Purpose
 
@@ -78,42 +77,161 @@ data/bronze/ data/silver/ data/gold/ data/models/ data/reports/  # Data tiers (g
 Configuration is centralised in `src/gridpulse/config.py` and overridable via
 environment variables (see `.env.example`).
 
-## Setup
+## Quick Start
 
-Use the existing project virtual environment — do not create a new one.
+### 1. Clone and Set Up a Virtual Environment
 
-```bash
-cd C:\Users\junai\Desktop\GridPulse
-.venv\Scripts\python.exe -m pip install -e ".[dev,serving,dashboard]"
+GridPulse requires Python 3.12 or 3.13. We recommend creating a fresh virtual environment for your clone.
+
+**Windows (PowerShell):**
+```powershell
+cd C:\path\to\your\projects
+git clone https://github.com/Junaiid7/GridPulse.git
+cd GridPulse
+python -m venv .venv
+.\.venv\Scripts\activate
+python -m pip install --upgrade pip
 ```
 
-This installs the package in editable mode along with `pytest`, `ruff`, and optional dependencies for serving (`fastapi`, `uvicorn`) and the dashboard (`streamlit`, `plotly`). Core runtime dependencies include `tzdata`, `lightgbm`, and `scipy`.
+**macOS / Linux:**
+```bash
+cd /path/to/your/projects
+git clone https://github.com/Junaiid7/GridPulse.git
+cd GridPulse
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+```
 
-## Secrets
+### 2. Install GridPulse
 
-Set `ENTSOE_API_KEY` in your environment or in a `.env` file (never committed).
-Open-Meteo requires no API key for non-commercial use.
+Install the package in editable mode along with development tools, the API server, and the dashboard:
 
 ```bash
-# Windows PowerShell
+# Activate your virtual environment first (see step 1)
+pip install -e ".[dev,serving,dashboard]"
+```
+
+This installs:
+- **Core dependencies**: `tzdata`, `lightgbm`, `scipy`
+- **Dev tools**: `pytest`, `ruff`
+- **Serving**: `fastapi`, `uvicorn`
+- **Dashboard**: `streamlit`, `plotly`
+
+### 3. Run the Test Suite
+
+Verify your installation by running the full test suite:
+
+```bash
+pytest -ra
+```
+
+Expected result: **405 tests passing**.
+
+### 4. Run an End-to-End Demo (No API Key Required)
+
+GridPulse includes an offline orchestration workflow that uses deterministic synthetic fixtures. This lets you explore the full pipeline without any external API keys.
+
+```bash
+# Run the full end-to-end orchestration on synthetic data
+python -m gridpulse.orchestration
+```
+
+This will:
+1. Generate synthetic ENTSO-E and Open-Meteo data
+2. Run the Bronze → Silver → Gold transformation pipeline
+3. Train a probabilistic quantile forecasting model (P10/P50/P90)
+4. Execute a battery dispatch backtest
+5. Write an orchestration report to `data/reports/orchestration_phase5.json`
+
+**Tip:** You can customize the run with CLI flags. See:
+```bash
+python -m gridpulse.orchestration --help
+```
+
+To run the orchestration from a script, you can also use:
+```bash
+python scripts/phase5_orchestration.py
+```
+
+### 5. Start the FastAPI Server
+
+Launch the API server (default: `http://localhost:8000`):
+
+```bash
+uvicorn gridpulse.api.app:app --reload --host 0.0.0.0 --port 8000
+```
+
+Key endpoints:
+- `GET /health` — Liveness and configuration check
+- `POST /forecast/predict` — Probabilistic forecast inference (requires a persisted model)
+- `POST /optimization/dispatch` — Battery dispatch optimization
+- `GET /orchestration/latest` — Latest orchestration report
+
+Interactive API docs: `http://localhost:8000/docs`
+
+### 6. Start the Streamlit Dashboard
+
+Launch the operational dashboard (default: `http://localhost:8501`):
+
+```bash
+streamlit run src/gridpulse/dashboard/app.py --server.address=0.0.0.0 --server.port=8501
+```
+
+The dashboard provides visualizations of orchestration results, probabilistic forecasts, and dispatch optimization outputs.
+
+## Secrets and Environment Variables
+
+GridPulse reads configuration from environment variables. You can set these in your shell or via a `.env` file.
+
+### Using a `.env` File (Optional)
+
+1. Copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
+2. Edit `.env` and fill in your values.
+3. Ensure `.env` is never committed (it is already in `.gitignore`).
+
+### ENTSO-E API Key
+
+- Required only for live ENTSO-E data (load, generation, prices, flows, imbalance).
+- Not required for offline/fixture workflows or Open-Meteo data.
+- Get your key at: https://transparency.entsoe.eu/content/Getting_started/
+- Set the environment variable:
+
+**Windows (PowerShell):**
+```powershell
 $env:ENTSOE_API_KEY = "your-key-here"
-
-# Or copy .env.example to .env and fill in the key
 ```
 
-## Testing
-
+**macOS / Linux:**
 ```bash
-.venv\Scripts\python.exe -m pytest
+export ENTSOE_API_KEY="your-key-here"
 ```
 
-405 tests covering: HTTP retries/auth/rate-limiting, ENTSO-E parameter
-construction/chunking/halving fallback/XML parsing (load, prices, generation,
-flows, imbalance ZIP), Open-Meteo parameter construction/JSON parsing, Bronze
-storage determinism/manifests, validation logic, offline pipeline fixtures, the
-Silver/Gold transformation layer, leakage-safe feature builders, probabilistic residual-load forecasting models, battery dispatch optimization (HiGHS LP), backtesting/evaluation, API serving layers, and dashboard components.
+### Other Configuration
 
-## CI/CD & Quality Automation
+See `.env.example` for all supported variables, including:
+- `GRIDPULSE_DATA_DIR` — Override the data directory
+- `GRIDPULSE_LOG_LEVEL` — Logging verbosity
+- `GRIDPULSE_HOLIDAYS_CSV` — Custom holiday calendar
+
+## Data Tiers and Artifacts
+
+GridPulse uses a medallion architecture with the following local directories (all **git-ignored**):
+
+| Directory | Purpose |
+|-----------|---------|
+| `data/bronze/` | Raw, immutable inputs as ingested |
+| `data/silver/` | Cleaned, validated, conformed data |
+| `data/gold/` | Curated analytical tables (e.g., features) |
+| `data/models/` | Persisted forecasting models |
+| `data/reports/` | Data quality and orchestration reports |
+
+These directories are created automatically when needed. Do not commit any contents under `data/` — they are generated artifacts.
+
+## CI & Quality Automation
 
 GridPulse uses **GitHub Actions** for continuous integration. The CI workflow runs automatically on every push and pull request to `main`.
 
@@ -124,20 +242,21 @@ GridPulse uses **GitHub Actions** for continuous integration. The CI workflow ru
 - **Test Suite**: Runs the complete pytest suite (`pytest -ra`).
 
 ### Running Quality Checks Locally
+
 You can run the exact same checks locally before committing:
 
 ```bash
-# Install development dependencies
-.venv\Scripts\python.exe -m pip install -e ".[dev,serving,dashboard]"
+# Ensure dev dependencies are installed
+pip install -e ".[dev,serving,dashboard]"
 
 # Run Ruff linter
-.venv\Scripts\python.exe -m ruff check .
+ruff check .
 
 # Check code formatting
-.venv\Scripts\python.exe -m ruff format --check .
+ruff format --check .
 
 # Run test suite
-.venv\Scripts\python.exe -m pytest -ra
+pytest -ra
 ```
 
 ## Roadmap
@@ -152,7 +271,7 @@ You can run the exact same checks locally before committing:
 - ✅ FastAPI serving layer (health, forecast, dispatch endpoints)
 - ✅ Streamlit operational dashboard
 - ✅ End-to-end orchestration
-- ✅ GitHub Actions CI/CD (Python 3.12/3.13, Ruff linting/formatting, pytest)
+- ✅ GitHub Actions CI (Python 3.12/3.13, Ruff linting/formatting, pytest)
 
 **Future enhancements:**
 - DuckDB/PostgreSQL warehouse backend (currently CSV-based)
@@ -163,5 +282,12 @@ You can run the exact same checks locally before committing:
 
 ## Contributing
 
-Keep configuration centralised, never hardcode secrets, and never commit
-datasets. Reuse the existing `.venv` for all Python work.
+- Keep configuration centralised (`src/gridpulse/config.py` and environment variables).
+- Never hardcode secrets or API keys in source code.
+- Never commit datasets, models, or reports under `data/`.
+- Create a fresh virtual environment for your work (do not reuse an existing `.venv` from another developer).
+- Run `pytest -ra` and `ruff check .` before submitting pull requests.
+
+## License
+
+This project is licensed for educational and research purposes. See `pyproject.toml` for package metadata.
