@@ -32,8 +32,8 @@ Examples:
     # Skip backtest, only run pipeline and forecast
     python -m gridpulse.orchestrate --skip-backtest
 
-    # Use live ENTSO-E data (requires API key)
-    python -m gridpulse.orchestrate --entsoe-api-key YOUR_KEY
+    # Use live ENTSO-E data (requires ENTSOE_API_KEY in the environment)
+    python -m gridpulse.orchestrate --start 2024-02-01 --end 2024-03-15
 
     # Customize bootstrap samples and seed
     python -m gridpulse.orchestrate --n-boot 5000 --seed 42
@@ -49,12 +49,6 @@ Examples:
         "--end",
         type=str,
         help="End datetime (ISO format, e.g., 2024-03-15)",
-        default=None,
-    )
-    parser.add_argument(
-        "--entsoe-api-key",
-        type=str,
-        help="ENTSO-E API key for live data (optional)",
         default=None,
     )
     parser.add_argument(
@@ -133,7 +127,6 @@ def main() -> int:
     result = run_e2e_orchestration(
         start=start,
         end=end,
-        entsoe_api_key=args.entsoe_api_key,
         skip_pipeline=args.skip_pipeline,
         skip_forecast=args.skip_forecast,
         skip_backtest=args.skip_backtest,
